@@ -147,8 +147,8 @@
 
 
   // Voice input (Web Speech API; iOS Safari 14.5+ / home-screen PWA)
-  const PH_MIC = "Type or tap the mic to log food, e.g. 1 serving Kodiak pancakes, 3 eggs";
-  $("chatInput").placeholder = "Type to log food, e.g. 1 serving Kodiak pancakes, 3 eggs";
+  const PH_MIC = "Type or tap the mic to log food\ne.g. 1 serving Kodiak pancakes, 3 eggs";
+  $("chatInput").placeholder = "Type to log food\ne.g. 1 serving Kodiak pancakes, 3 eggs";
   (function setupMic() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const btn = $("mic"); if (!SR || !btn) return;
