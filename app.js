@@ -109,5 +109,29 @@
     bubble(`Saved ${rows.length} item(s).`, "bot"); pending = []; renderReview(); refresh();
   };
 
+  // Voice input (Web Speech API; iOS Safari 14.5+ / home-screen PWA)
+  (function setupMic() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = $("mic"); if (!SR || !btn) return;
+    btn.classList.remove("hidden");
+    let rec = null, base = "";
+    const stop = () => { btn.classList.remove("listening"); btn.setAttribute("aria-pressed", "false"); $("chatInput").placeholder = "e.g. 1 serving Kodiak pancakes, 3 eggs"; rec = null; };
+    btn.addEventListener("click", () => {
+      if (rec) { rec.stop(); return; }
+      rec = new SR(); rec.lang = navigator.language || "en-US"; rec.interimResults = true; rec.continuous = false;
+      base = $("chatInput").value.trim(); base = base ? base + " " : "";
+      rec.onresult = e => { let t = ""; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; $("chatInput").value = base + t.trim(); };
+      rec.onerror = e => {
+        const m = { "not-allowed": "Microphone or speech recognition permission was denied. On iPhone: Settings → Safari → Microphone, and Settings → Privacy & Security → Speech Recognition.",
+          "service-not-allowed": "Speech recognition isn't allowed. Enable Siri & Dictation / Speech Recognition in iPhone Settings.",
+          "no-speech": "Didn't catch that — try again.", "audio-capture": "No microphone found.", "network": "Speech recognition needs a network connection." }[e.error];
+        if (e.error !== "aborted") bubble(m || ("Voice input error: " + e.error), "bot");
+      };
+      rec.onend = () => { stop(); $("chatInput").focus(); };
+      try { rec.start(); btn.classList.add("listening"); btn.setAttribute("aria-pressed", "true"); $("chatInput").placeholder = "Listening…"; }
+      catch (err) { bubble("Couldn't start voice input: " + err.message, "bot"); stop(); }
+    });
+  })();
+
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 })();

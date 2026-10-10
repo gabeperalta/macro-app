@@ -67,6 +67,12 @@ Note: the repo is public, so anyone can see the code and `config.js`. That's fin
 3. Open it from the home screen, tap **Create account**, pick a username + password.
 Friends do the same with their own username.
 
+## Voice input
+Tap the 🎤 button next to the chat box, say your meal, then edit the text if needed and tap Send. It uses the iPhone's built-in speech recognition (free, iOS 14.5+). The first time, iOS asks for **Microphone** and **Speech Recognition** permission — tap Allow. If you denied it: Settings → Safari → Microphone (Allow), and Settings → Privacy & Security → Speech Recognition, and make sure Siri & Dictation is enabled. The button is hidden on browsers that don't support it.
+
+## 12-month data retention
+`schema.sql` already includes this; for an existing project run `supabase/retention.sql` in the SQL Editor (safe to run again). It enables the free `pg_cron` extension (also toggleable under Database → Extensions) and schedules a daily job at 03:15 UTC that deletes `meal_items` older than 12 months. Check it with `select * from cron.job;` and runs with `select * from cron.job_run_details order by start_time desc limit 5;`.
+
 ## Free-tier limits (as of 2026; check the pricing pages)
 - **Supabase free:** 2 projects, 500 MB database, 50,000 monthly active users, 500k Edge Function calls/month. **Projects pause after ~7 days with no activity** — click "Restore" in the dashboard to wake it.
 - **Gemini free tier:** limited requests per minute/day (plenty for a few people). Google may use free-tier prompts to improve its products — don't type anything private.

@@ -21,3 +21,9 @@ create policy "own rows select" on public.meal_items for select to authenticated
 create policy "own rows insert" on public.meal_items for insert to authenticated with check (auth.uid() = user_id);
 create policy "own rows update" on public.meal_items for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows delete" on public.meal_items for delete to authenticated using (auth.uid() = user_id);
+
+-- 12-month data retention (pg_cron, free on Supabase). Safe to re-run.
+create extension if not exists pg_cron;
+select cron.unschedule(jobid) from cron.job where jobname = 'delete-old-meal-items';
+select cron.schedule('delete-old-meal-items', '15 3 * * *',
+  $$delete from public.meal_items where eaten_at < now() - interval '12 months'$$);
