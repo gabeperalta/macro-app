@@ -3,7 +3,7 @@
   const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: window.localStorage, storageKey: "macro-log-auth" } });
   const $ = id => document.getElementById(id);
-  let chart, yearChart, pending = [], lastText = "";
+  let chart, yearChart;
 
   const toEmail = u => `${u.trim().toLowerCase()}@${cfg.USERNAME_DOMAIN}`;
   const validUser = u => /^[a-z0-9_.-]{3,30}$/i.test(u.trim());
@@ -107,15 +107,20 @@
   $("chatForm").onsubmit = async e => {
     e.preventDefault();
     const text = $("chatInput").value.trim(); if (!text) return;
-    lastText = text;
     $("send").disabled = true; status("Reading your meal…");
     try {
       const { data, error } = await parseMeal(text);
       if (error) throw new Error(error);
-      $("chatInput").value = ""; grow(); // clear only on success so a failed message can be resent
       if (!data?.items?.length) return status(data?.error || "I couldn't find any foods in that. Try again?", true);
-      pending = data.items; renderReview();
-      status("");
+      // Save immediately; items show up in Today's items where they can be deleted.
+      const { data: { user } } = await sb.auth.getUser();
+      const now = new Date().toISOString();
+      const rows = data.items.map(it => ({ user_id: user.id, eaten_at: now, description: text, name: String(it.name).slice(0, 200),
+        protein: r1(it.protein), carbs: r1(it.carbs), fat: r1(it.fat) }));
+      const { error: saveErr } = await sb.from("meal_items").insert(rows);
+      if (saveErr) return status("Save failed: " + saveErr.message, true);
+      $("chatInput").value = ""; grow(); // clear only on success so a failed message can be resent
+      status(""); refresh();
     } catch (err) { const m = String(err.message || err); status(/^The AI is busy/.test(m) ? m : "Error: " + m, true); }
     finally { $("send").disabled = false; }
   };
@@ -140,29 +145,6 @@
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("chatForm").requestSubmit ? $("chatForm").requestSubmit() : $("send").click(); }
   });
 
-  function renderReview() {
-    $("reviewBody").innerHTML = pending.map((it, i) => `<tr>
-      <td><input data-i="${i}" data-k="name" value="${esc(it.name)}"></td>
-      <td><input data-i="${i}" data-k="protein" inputmode="decimal" value="${r1(it.protein)}"></td>
-      <td><input data-i="${i}" data-k="carbs" inputmode="decimal" value="${r1(it.carbs)}"></td>
-      <td><input data-i="${i}" data-k="fat" inputmode="decimal" value="${r1(it.fat)}"></td>
-      <td><button class="link" data-rm="${i}">✕</button></td></tr>`).join("");
-    $("review").classList.toggle("hidden", !pending.length);
-  }
-  $("reviewBody").oninput = e => { const { i, k } = e.target.dataset; if (i) pending[i][k] = k === "name" ? e.target.value : e.target.value; };
-  $("reviewBody").onclick = e => { const i = e.target.dataset.rm; if (i !== undefined) { pending.splice(+i, 1); renderReview(); } };
-  $("cancel").onclick = () => { status(""); pending = []; renderReview(); };
-  $("save").onclick = async () => {
-    const { data: { user } } = await sb.auth.getUser();
-    const now = new Date().toISOString();
-    const rows = pending.map(it => ({ user_id: user.id, eaten_at: now, description: lastText, name: String(it.name).slice(0, 200),
-      protein: r1(it.protein), carbs: r1(it.carbs), fat: r1(it.fat) }));
-    $("save").disabled = true;
-    const { error } = await sb.from("meal_items").insert(rows);
-    $("save").disabled = false;
-    if (error) return status("Save failed: " + error.message, true);
-    status(""); pending = []; renderReview(); refresh();
-  };
 
   // Voice input (Web Speech API; iOS Safari 14.5+ / home-screen PWA)
   (function setupMic() {
