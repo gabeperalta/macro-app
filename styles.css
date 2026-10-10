@@ -15,9 +15,6 @@ button{padding:12px 16px;border:0;border-radius:12px;background:var(--p);color:#
 button.secondary{background:#2c313c}button.link{background:none;color:var(--mut);padding:4px}
 button:disabled{opacity:.5}
 .row{display:flex;gap:8px;align-items:center}.row input{flex:1}
-.chat{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
-.bubble{padding:8px 12px;border-radius:14px;max-width:85%;font-size:15px;white-space:pre-wrap}
-.me{align-self:flex-end;background:var(--p)}.bot{align-self:flex-start;background:#2c313c}
 table{width:100%;border-collapse:collapse;margin-bottom:8px}th{color:var(--mut);font-size:12px;text-align:left}
 td input{padding:6px;margin:2px 0;font-size:14px}td:nth-child(n+2):not(:last-child) input{width:52px}
 .list{list-style:none;padding:0;margin:0}.list li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #2c313c;font-size:14px}
@@ -35,3 +32,6 @@ textarea#chatInput{flex:1;width:100%;padding:12px;border-radius:12px;border:1px 
 .sub{color:var(--mut);font-weight:400;font-size:12px}
 .mic.listening { background: #e5484d; animation: micpulse 1s infinite; }
 @keyframes micpulse { 50% { opacity: .6; } }
+
+.status{color:var(--mut);font-size:13px;margin:6px 2px 0;min-height:1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status.err{color:#f87171}
+#review{margin-top:8px}

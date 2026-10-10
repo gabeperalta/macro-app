@@ -53,16 +53,12 @@
     if (ok) refresh();
   }
 
-  function bubble(text, who) {
-    const b = document.createElement("div");
-    b.className = "bubble " + who; b.textContent = text;
-    $("chat").appendChild(b); $("chat").scrollTop = 1e9;
-  }
+  function status(text, isErr) { const s = $("status"); s.textContent = text || ""; s.classList.toggle("err", !!isErr); }
 
   async function refresh() {
     const start = new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate() - 6);
     const { data, error } = await sb.from("meal_items").select("*").gte("eaten_at", start.toISOString()).order("eaten_at");
-    if (error) return bubble("Load failed: " + error.message, "bot");
+    if (error) return status("Load failed: " + error.message, true);
     const days = [];
     for (let i = 0; i < 7; i++) { const d = new Date(start); d.setDate(start.getDate() + i); days.push(d); }
     const tot = Object.fromEntries(days.map(d => [dayKey(d), { p: 0, c: 0, f: 0 }]));
@@ -111,17 +107,16 @@
   $("chatForm").onsubmit = async e => {
     e.preventDefault();
     const text = $("chatInput").value.trim(); if (!text) return;
-    lastText = text; bubble(text, "me");
-    $("send").disabled = true; bubble("Looking that up…", "bot");
+    lastText = text;
+    $("send").disabled = true; status("Reading your meal…");
     try {
       const { data, error } = await parseMeal(text);
-      $("chat").lastChild.remove();
       if (error) throw new Error(error);
       $("chatInput").value = ""; grow(); // clear only on success so a failed message can be resent
-      if (!data?.items?.length) return bubble(data?.error || "I couldn't find any foods in that. Try again?", "bot");
+      if (!data?.items?.length) return status(data?.error || "I couldn't find any foods in that. Try again?", true);
       pending = data.items; renderReview();
-      bubble("Here's what I found. Edit anything, then Save.", "bot");
-    } catch (err) { const m = String(err.message || err); bubble(/^The AI is busy/.test(m) ? m : "Error: " + m, "bot"); }
+      status("");
+    } catch (err) { const m = String(err.message || err); status(/^The AI is busy/.test(m) ? m : "Error: " + m, true); }
     finally { $("send").disabled = false; }
   };
 
@@ -156,7 +151,7 @@
   }
   $("reviewBody").oninput = e => { const { i, k } = e.target.dataset; if (i) pending[i][k] = k === "name" ? e.target.value : e.target.value; };
   $("reviewBody").onclick = e => { const i = e.target.dataset.rm; if (i !== undefined) { pending.splice(+i, 1); renderReview(); } };
-  $("cancel").onclick = () => { pending = []; renderReview(); };
+  $("cancel").onclick = () => { status(""); pending = []; renderReview(); };
   $("save").onclick = async () => {
     const { data: { user } } = await sb.auth.getUser();
     const now = new Date().toISOString();
@@ -165,8 +160,8 @@
     $("save").disabled = true;
     const { error } = await sb.from("meal_items").insert(rows);
     $("save").disabled = false;
-    if (error) return bubble("Save failed: " + error.message, "bot");
-    bubble(`Saved ${rows.length} item(s).`, "bot"); pending = []; renderReview(); refresh();
+    if (error) return status("Save failed: " + error.message, true);
+    status(""); pending = []; renderReview(); refresh();
   };
 
   // Voice input (Web Speech API; iOS Safari 14.5+ / home-screen PWA)
@@ -185,11 +180,11 @@
         const m = { "not-allowed": "Microphone or speech recognition permission was denied. On iPhone: Settings → Safari → Microphone, and Settings → Privacy & Security → Speech Recognition.",
           "service-not-allowed": "Speech recognition isn't allowed. Enable Siri & Dictation / Speech Recognition in iPhone Settings.",
           "no-speech": "Didn't catch that — try again.", "audio-capture": "I couldn't hear from a microphone. Check that one is connected and that this app is allowed to use it, or just type your meal.", "network": "Speech recognition needs a network connection." }[e.error];
-        if (e.error !== "aborted") bubble(m || ("Voice input error: " + e.error), "bot");
+        if (e.error !== "aborted") status(m || ("Voice input error: " + e.error), true);
       };
       rec.onend = () => { stop(); $("chatInput").focus(); };
       try { rec.start(); btn.classList.add("listening"); btn.setAttribute("aria-pressed", "true"); $("chatInput").placeholder = "Listening…"; }
-      catch (err) { bubble("Couldn't start voice input: " + err.message, "bot"); stop(); }
+      catch (err) { status("Couldn't start voice input: " + err.message, true); stop(); }
     });
   })();
 

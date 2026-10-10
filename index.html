@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 <header><h1>Macro Log</h1>
@@ -51,16 +51,16 @@
   </section>
   <section class="card">
     <h2>Log food</h2>
-    <div id="chat" class="chat"></div>
-    <div id="review" class="hidden">
-      <table><thead><tr><th>Item</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead><tbody id="reviewBody"></tbody></table>
-      <div class="row"><button id="save">Save</button><button id="cancel" class="secondary">Cancel</button></div>
-    </div>
     <form id="chatForm" class="row chatrow">
       <textarea id="chatInput" rows="1" placeholder="e.g. 1 serving Kodiak pancakes, 3 eggs" autocomplete="off"></textarea>
       <button type="button" id="mic" class="mic hidden" aria-label="Speak your meal" title="Speak your meal">🎤</button>
       <button id="send">Send</button>
     </form>
+    <p id="status" class="status"></p>
+    <div id="review" class="hidden">
+      <table><thead><tr><th>Item</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead><tbody id="reviewBody"></tbody></table>
+      <div class="row"><button id="save">Save</button><button id="cancel" class="secondary">Cancel</button></div>
+    </div>
   </section>
   <section class="card">
     <h2>Last Week</h2>
@@ -75,6 +75,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
