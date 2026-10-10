@@ -1,6 +1,6 @@
 {
-  "name": "Macro Bot",
-  "short_name": "Macro Bot",
+  "name": "Macro Log",
+  "short_name": "Macro Log",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

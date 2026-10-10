@@ -3,20 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Macro Bot</title>
+<title>Macro Log</title>
 <meta name="theme-color" content="#0f1115">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Macro Bot">
+<meta name="apple-mobile-web-app-title" content="Macro Log">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
-<header><h1>Macro Bot</h1><button id="logout" class="link hidden">Log out</button></header>
+<header><h1>Macro Log</h1>
+  <div class="usermenu"><button id="userBtn" class="userbtn hidden" aria-haspopup="true"></button>
+    <div id="userMenu" class="menu hidden"><button id="logout" class="secondary">Log out</button></div></div>
+</header>
 
 <section id="auth" class="card hidden">
   <h2>Sign in</h2>
@@ -34,10 +37,6 @@
 </section>
 
 <main id="app" class="hidden">
-  <section class="card">
-    <h2>Last Week</h2>
-    <div class="chartwrap"><canvas id="chart"></canvas></div>
-  </section>
   <section>
     <h2 class="pad">Today</h2>
     <div class="panels">
@@ -47,27 +46,35 @@
     </div>
   </section>
   <section class="card">
+    <h2>Today's items</h2>
+    <ul id="todayList" class="list"></ul>
+  </section>
+  <section class="card">
     <h2>Log food</h2>
     <div id="chat" class="chat"></div>
     <div id="review" class="hidden">
       <table><thead><tr><th>Item</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead><tbody id="reviewBody"></tbody></table>
       <div class="row"><button id="save">Save</button><button id="cancel" class="secondary">Cancel</button></div>
     </div>
-    <form id="chatForm" class="row">
-      <input id="chatInput" placeholder="e.g. 1 serving Kodiak pancakes, 3 eggs" autocomplete="off">
+    <form id="chatForm" class="row chatrow">
+      <textarea id="chatInput" rows="1" placeholder="e.g. 1 serving Kodiak pancakes, 3 eggs" autocomplete="off"></textarea>
       <button type="button" id="mic" class="mic hidden" aria-label="Speak your meal" title="Speak your meal">🎤</button>
       <button id="send">Send</button>
     </form>
   </section>
   <section class="card">
-    <h2>Today's items</h2>
-    <ul id="todayList" class="list"></ul>
+    <h2>Last Week</h2>
+    <div class="chartwrap"><canvas id="chart"></canvas></div>
+  </section>
+  <section class="card">
+    <h2>Last Year <small class="sub">avg per day, by month</small></h2>
+    <div class="chartwrap"><canvas id="yearChart"></canvas></div>
   </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
