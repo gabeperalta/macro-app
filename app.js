@@ -111,16 +111,17 @@
   $("chatForm").onsubmit = async e => {
     e.preventDefault();
     const text = $("chatInput").value.trim(); if (!text) return;
-    lastText = text; $("chatInput").value = ""; grow(); bubble(text, "me");
+    lastText = text; bubble(text, "me");
     $("send").disabled = true; bubble("Looking that up…", "bot");
     try {
       const { data, error } = await parseMeal(text);
       $("chat").lastChild.remove();
       if (error) throw new Error(error);
+      $("chatInput").value = ""; grow(); // clear only on success so a failed message can be resent
       if (!data?.items?.length) return bubble(data?.error || "I couldn't find any foods in that. Try again?", "bot");
       pending = data.items; renderReview();
       bubble("Here's what I found. Edit anything, then Save.", "bot");
-    } catch (err) { bubble("Error: " + (err.message || err), "bot"); }
+    } catch (err) { const m = String(err.message || err); bubble(/^The AI is busy/.test(m) ? m : "Error: " + m, "bot"); }
     finally { $("send").disabled = false; }
   };
 
@@ -129,8 +130,10 @@
     await sb.auth.getSession(); // refreshes an expired token first
     const { data, error } = await sb.functions.invoke("parse-meal", { body: { text } });
     if (!error) return { data };
-    let msg = error.message, status = error.context?.status;
-    try { const b = await error.context.json(); msg = b.error || b.message || msg; } catch {}
+    let msg = error.message, status = error.context?.status, code = "";
+    try { const b = await error.context.json(); msg = b.error || b.message || msg; code = b.code || ""; } catch {}
+    if (code === "ai_busy" || status === 503 || status === 429 || /high demand|overload|busy|UNAVAILABLE|RESOURCE_EXHAUSTED|timed out/i.test(msg))
+      return { error: "The AI is busy right now, tap Send to try again." };
     if (status === 401 && !retried) { await sb.auth.refreshSession(); return parseMeal(text, true); }
     return { error: (status ? `(${status}) ` : "") + msg };
   }

@@ -77,6 +77,7 @@ function refine(item, per100, source) {
 // Supabase Edge Function: parse-meal
 // Secrets: GEMINI_API_KEY (required), USDA_API_KEY (optional, falls back to DEMO_KEY),
 //          GEMINI_MODEL (optional, default gemini-3.8-flash), DB_LOOKUP ("off" to disable lookups)
+//          GEMINI_FALLBACK_MODELS (optional, comma-separated; default gemini-3.5-flash-lite,gemini-3.6-flash,gemini-3.1-flash-lite,gemini-flash-latest)
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -99,7 +100,7 @@ async function fetchJson(url: string, ms = 4000) {
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 async function callGemini(model: string, key: string, text: string, jsonMode: boolean) {
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 12000);
   try {
     const gc: Record<string, unknown> = { temperature: 0.2 };
     if (jsonMode) gc.responseMimeType = "application/json";
@@ -124,20 +125,30 @@ async function callGemini(model: string, key: string, text: string, jsonMode: bo
   } finally { clearTimeout(t); }
 }
 
+const DEFAULT_FALLBACKS = "gemini-3.5-flash-lite,gemini-3.6-flash,gemini-3.1-flash-lite,gemini-flash-latest";
+
+// Try GEMINI_MODEL first, then each fallback. Overload/rate-limit/5xx/timeout/unknown model -> next model fast.
 async function askGemini(text: string) {
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) throw new Error("GEMINI_API_KEY secret is not set");
   const primary = Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
-  const attempts = [[primary, true], [primary, false], [primary, true]] as const;
-  let last = "";
-  for (let i = 0; i < attempts.length; i++) {
-    const res = await callGemini(attempts[i][0], key, text, attempts[i][1]);
-    if (res.items) return res.items;
-    last = `AI error ${res.status}: ${res.err}`;
-    if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 404) break; // won't fix itself
-    await sleep(600 * (i + 1));
+  const fallbacks = (Deno.env.get("GEMINI_FALLBACK_MODELS") ?? DEFAULT_FALLBACKS).split(",").map(s => s.trim()).filter(Boolean);
+  const models = [...new Set([primary, ...fallbacks])];
+  const deadline = Date.now() + 40000;
+  let last = "", busy = true;
+  for (const model of models) {
+    if (Date.now() > deadline) break;
+    for (const jsonMode of [true, false]) {
+      const res = await callGemini(model, key, text, jsonMode);
+      if (res.items) return res.items;
+      last = `AI error ${res.status} (${model}): ${res.err}`;
+      if (res.status === 401 || res.status === 403) throw new Error(last); // bad key: no point continuing
+      if (res.status !== 429 && res.status !== 504 && !(res.status >= 500 && res.status !== 502)) busy = false;
+      if (res.status !== 502) break; // only parse failures retry the same model (without JSON mode)
+    }
+    await sleep(250);
   }
-  throw new Error(last);
+  throw new Error((busy ? "AI_BUSY: " : "") + last);
 }
 
 async function lookup(item: any) {
@@ -173,6 +184,7 @@ Deno.serve(async (req) => {
     if (Deno.env.get("DB_LOOKUP") !== "off") items = await Promise.all(items.map(lookup));
     return json({ items: items.map(({ name, protein, carbs, fat, source }) => ({ name, protein, carbs, fat, source })) });
   } catch (e) {
-    return json({ error: String((e as Error).message || e) }, 502);
+    const msg = String((e as Error).message || e);
+    return json({ error: msg.replace(/^AI_BUSY: /, ""), code: msg.startsWith("AI_BUSY") ? "ai_busy" : "error" }, msg.startsWith("AI_BUSY") ? 503 : 502);
   }
 });
