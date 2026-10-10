@@ -147,12 +147,14 @@
 
 
   // Voice input (Web Speech API; iOS Safari 14.5+ / home-screen PWA)
+  const PH_MIC = "Type or tap the mic to log food, e.g. 1 serving Kodiak pancakes, 3 eggs";
+  $("chatInput").placeholder = "Type to log food, e.g. 1 serving Kodiak pancakes, 3 eggs";
   (function setupMic() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const btn = $("mic"); if (!SR || !btn) return;
-    btn.classList.remove("hidden");
+    btn.classList.remove("hidden"); $("chatInput").placeholder = PH_MIC;
     let rec = null, base = "";
-    const stop = () => { btn.classList.remove("listening"); btn.setAttribute("aria-pressed", "false"); $("chatInput").placeholder = "e.g. 1 serving Kodiak pancakes, 3 eggs"; rec = null; };
+    const stop = () => { btn.classList.remove("listening"); btn.setAttribute("aria-pressed", "false"); $("chatInput").placeholder = PH_MIC; rec = null; };
     btn.addEventListener("click", () => {
       if (rec) { rec.stop(); return; }
       rec = new SR(); rec.lang = navigator.language || "en-US"; rec.interimResults = true; rec.continuous = false;

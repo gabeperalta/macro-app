@@ -22,7 +22,7 @@ button:disabled{opacity:.5}
 .chatrow button{height:48px;min-width:64px;padding:0 14px;flex:0 0 auto}
 .mic{background:#2a2f3a;font-size:20px}
 textarea#chatInput{flex:1;width:100%;padding:12px;border-radius:12px;border:1px solid #2c313c;background:#11141a;color:var(--txt);
- font:16px/22px inherit;font-family:inherit;margin:0;resize:none;min-height:48px;max-height:160px;overflow-y:auto}
+ font:16px/22px inherit;font-family:inherit;margin:0;resize:none;min-height:70px;max-height:160px;overflow-y:auto}
 .usermenu{position:relative}
 .userbtn{background:#2c313c;padding:6px 12px;font-size:14px;border-radius:999px}
 .menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--card);border:1px solid #2c313c;border-radius:12px;padding:6px;z-index:10}
@@ -32,3 +32,4 @@ textarea#chatInput{flex:1;width:100%;padding:12px;border-radius:12px;border:1px 
 @keyframes micpulse { 50% { opacity: .6; } }
 
 .status{color:var(--mut);font-size:13px;margin:6px 2px 0;min-height:1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status.err{color:#f87171}
+textarea#chatInput::placeholder{white-space:pre-wrap;color:#6b7280}
