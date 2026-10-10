@@ -139,7 +139,7 @@
   }
 
   // Auto-growing textarea: Enter sends, Shift+Enter = newline.
-  function grow() { const t = $("chatInput"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 170) + "px"; t.scrollTop = t.scrollHeight; }
+  function grow() { if ($("hint")) $("hint").classList.toggle("hidden", !!$("chatInput").value); const t = $("chatInput"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 170) + "px"; t.scrollTop = t.scrollHeight; }
   $("chatInput").addEventListener("input", grow);
   $("chatInput").addEventListener("keydown", e => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("chatForm").requestSubmit ? $("chatForm").requestSubmit() : $("send").click(); }
@@ -147,14 +147,19 @@
 
 
   // Voice input (Web Speech API; iOS Safari 14.5+ / home-screen PWA)
-  const PH_MIC = "Type or tap the mic to log food\ne.g. 1 serving Kodiak pancakes, 3 eggs";
-  $("chatInput").placeholder = "Type to log food\ne.g. 1 serving Kodiak pancakes, 3 eggs";
+  // Custom overlay hint (iOS ignores newlines in textarea placeholders).
+  let hintBase = "Type to log food", listening = false;
+  function hint() {
+    $("hint1").textContent = listening ? "Listening…" : hintBase;
+    $("hint").classList.toggle("hidden", !!$("chatInput").value);
+  }
+  $("chatInput").addEventListener("input", hint);
   (function setupMic() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const btn = $("mic"); if (!SR || !btn) return;
-    btn.classList.remove("hidden"); $("chatInput").placeholder = PH_MIC;
+    btn.classList.remove("hidden"); hintBase = "Type or tap the mic to log food"; hint();
     let rec = null, base = "";
-    const stop = () => { btn.classList.remove("listening"); btn.setAttribute("aria-pressed", "false"); $("chatInput").placeholder = PH_MIC; rec = null; };
+    const stop = () => { btn.classList.remove("listening"); btn.setAttribute("aria-pressed", "false"); listening = false; hint(); rec = null; };
     btn.addEventListener("click", () => {
       if (rec) { rec.stop(); return; }
       rec = new SR(); rec.lang = navigator.language || "en-US"; rec.interimResults = true; rec.continuous = false;
@@ -167,10 +172,12 @@
         if (e.error !== "aborted") status(m || ("Voice input error: " + e.error), true);
       };
       rec.onend = () => { stop(); $("chatInput").focus(); };
-      try { rec.start(); btn.classList.add("listening"); btn.setAttribute("aria-pressed", "true"); $("chatInput").placeholder = "Listening…"; }
+      try { rec.start(); btn.classList.add("listening"); btn.setAttribute("aria-pressed", "true"); listening = true; hint(); }
       catch (err) { status("Couldn't start voice input: " + err.message, true); stop(); }
     });
   })();
 
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(reg => {
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update(); });
+  });
 })();
