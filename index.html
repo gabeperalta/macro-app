@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 <header><h1>Macro Log</h1>
@@ -52,7 +52,10 @@
   <section class="card">
     <h2>Log food</h2>
     <form id="chatForm" class="chatform">
-      <textarea id="chatInput" rows="2" placeholder="Type to log food&#10;e.g. 1 serving Kodiak pancakes, 3 eggs" autocomplete="off"></textarea>
+      <div class="inputwrap">
+        <textarea id="chatInput" rows="2" placeholder="" autocomplete="off" aria-label="Log food"></textarea>
+        <div id="hint" class="hint" aria-hidden="true"><span id="hint1">Type to log food</span><br>e.g. 1 serving Kodiak pancakes, 3 eggs</div>
+      </div>
       <div class="btnrow">
       <button type="button" id="mic" class="mic hidden" aria-label="Speak your meal" title="Speak your meal">🎤</button>
       <button id="send">Send</button>
@@ -73,6 +76,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
