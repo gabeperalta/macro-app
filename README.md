@@ -73,6 +73,22 @@ Tap the 🎤 button next to the chat box, say your meal, then edit the text if n
 ## 12-month data retention
 `schema.sql` already includes this; for an existing project run `supabase/retention.sql` in the SQL Editor (safe to run again). It enables the free `pg_cron` extension (also toggleable under Database → Extensions) and schedules a daily job at 03:15 UTC that deletes `meal_items` older than 12 months. Check it with `select * from cron.job;` and runs with `select * from cron.job_run_details order by start_time desc limit 5;`.
 
+## Account approval + signup alerts (ntfy, free)
+New accounts start as **pending** and only see a "Waiting for approval" screen; the database won't let them read or save meals until you approve them.
+
+1. Install the free **ntfy** app (App Store / Google Play).
+2. Pick a hard-to-guess topic name, e.g. `macro-gabe-7f3k9q2x`. Anyone who knows the topic can read its alerts, so don't use something obvious.
+3. In the ntfy app tap **+**, enter that topic (server `ntfy.sh`), and subscribe. Allow notifications.
+4. In Supabase **SQL Editor**, run [`supabase/approval.sql`](supabase/approval.sql) (safe to re-run; it also approves everyone who already has an account). Fresh installs get this from `schema.sql` already.
+5. Save your topic (replace the name with yours):
+   ```sql
+   insert into public.app_settings (key, value) values ('ntfy_topic', 'macro-gabe-7f3k9q2x')
+   on conflict (key) do update set value = excluded.value;
+   ```
+6. When someone signs up you get a push. **Approve:** Table Editor → `profiles` → tick `approved` for their row → Save. They tap **Refresh** in the app. **Reject:** Authentication → Users → delete that user (their profile is removed automatically).
+
+To approve all current users at once: `select public.approve_existing_users();`
+
 ## Free-tier limits (as of 2026; check the pricing pages)
 - **Supabase free:** 2 projects, 500 MB database, 50,000 monthly active users, 500k Edge Function calls/month. **Projects pause after ~7 days with no activity** — click "Restore" in the dashboard to wake it.
 - **Gemini free tier:** limited requests per minute/day (plenty for a few people). Google may use free-tier prompts to improve its products — don't type anything private.

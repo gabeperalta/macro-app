@@ -28,11 +28,23 @@
   sb.auth.onAuthStateChange((_e, session) => show(session));
   sb.auth.getSession().then(({ data }) => show(data.session));
 
-  function show(session) {
+  $("pendingLogout").onclick = () => sb.auth.signOut();
+  $("pendingRefresh").onclick = () => sb.auth.getSession().then(({ data }) => show(data.session));
+
+  let showSeq = 0;
+  async function show(session) {
+    const seq = ++showSeq;
     $("auth").classList.toggle("hidden", !!session);
-    $("app").classList.toggle("hidden", !session);
     $("logout").classList.toggle("hidden", !session);
-    if (session) refresh();
+    if (!session) { $("app").classList.add("hidden"); $("pending").classList.add("hidden"); return; }
+    $("pendingMsg").textContent = "";
+    const { data: prof, error } = await sb.from("profiles").select("approved").eq("id", session.user.id).maybeSingle();
+    if (seq !== showSeq) return;
+    const ok = !error && prof?.approved === true;
+    $("app").classList.toggle("hidden", !ok);
+    $("pending").classList.toggle("hidden", ok);
+    if (error) $("pendingMsg").textContent = "Couldn't check approval: " + error.message;
+    if (ok) refresh();
   }
 
   function bubble(text, who) {
