@@ -1,0 +1,24 @@
+:root{--bg:#0f1115;--card:#1a1d24;--txt:#eef0f4;--mut:#9aa3b2;--p:#3b82f6;--c:#ef4444;--f:#22c55e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:16px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;
+ padding:env(safe-area-inset-top) 12px calc(env(safe-area-inset-bottom) + 16px);max-width:560px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 4px}
+h1{font-size:22px;margin:0}h2{font-size:17px;margin:0 0 10px}.pad{padding:0 4px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin:12px 0}
+.chartwrap{height:200px}
+.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.panel{border-radius:16px;padding:14px 8px;text-align:center;background:var(--card);border-top:4px solid}
+.panel span{display:block;color:var(--mut);font-size:13px}.panel b{font-size:24px}
+.protein{border-color:var(--p)}.carbs{border-color:var(--c)}.fat{border-color:var(--f)}
+input{width:100%;padding:12px;border-radius:12px;border:1px solid #2c313c;background:#11141a;color:var(--txt);font-size:16px;margin:4px 0}
+button{padding:12px 16px;border:0;border-radius:12px;background:var(--p);color:#fff;font-size:16px;font-weight:600}
+button.secondary{background:#2c313c}button.link{background:none;color:var(--mut);padding:4px}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;align-items:center}.row input{flex:1}
+.chat{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.bubble{padding:8px 12px;border-radius:14px;max-width:85%;font-size:15px;white-space:pre-wrap}
+.me{align-self:flex-end;background:var(--p)}.bot{align-self:flex-start;background:#2c313c}
+table{width:100%;border-collapse:collapse;margin-bottom:8px}th{color:var(--mut);font-size:12px;text-align:left}
+td input{padding:6px;margin:2px 0;font-size:14px}td:nth-child(n+2):not(:last-child) input{width:52px}
+.list{list-style:none;padding:0;margin:0}.list li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #2c313c;font-size:14px}
+.list small{color:var(--mut)}.msg{color:var(--mut);min-height:1em}.hidden{display:none!important}
