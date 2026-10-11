@@ -50,7 +50,7 @@
     $("app").classList.toggle("hidden", !ok);
     $("pending").classList.toggle("hidden", ok);
     if (error) $("pendingMsg").textContent = "Couldn't check approval: " + error.message;
-    if (ok) refresh();
+    if (ok) { refresh(); loadGoals(); }
   }
 
   function status(text, isErr) { const s = $("status"); s.textContent = text || ""; s.classList.toggle("err", !!isErr); }
@@ -65,14 +65,74 @@
     data.forEach(r => { const t = tot[dayKey(r.eaten_at)]; if (t) { t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; } });
     const today = tot[dayKey(new Date())];
     $("tP").textContent = Math.round(today.p) + "g"; $("tC").textContent = Math.round(today.c) + "g"; $("tF").textContent = Math.round(today.f) + "g";
+    lastToday = { ...today, n: data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).length }; showGoals();
     drawChart(days.map(d => d.toLocaleDateString(undefined, { weekday: "short" })), days.map(d => tot[dayKey(d)]));
     loadYear();
+    todayRows = {};
     const todays = data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).reverse();
-    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><button class="link" data-del="${r.id}">✕</button></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
+    todays.forEach(r => todayRows[r.id] = r);
+    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit">✏️</button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
   }
   $("todayList").onclick = async e => {
-    const id = e.target.dataset.del; if (!id || !confirm("Delete this item?")) return;
-    await sb.from("meal_items").delete().eq("id", id); refresh();
+    const t = e.target.closest("button"); if (!t) return;
+    const li = t.closest("li");
+    if (t.dataset.del) { if (!confirm("Delete this item?")) return; await sb.from("meal_items").delete().eq("id", t.dataset.del); return refresh(); }
+    if (t.dataset.edit) {
+      const r = todayRows[t.dataset.edit]; if (!r) return;
+      li.classList.add("editing");
+      li.innerHTML = `<div class="editrow"><div class="ename">${esc(r.name)}</div>
+        <div class="efields">${[["protein","P"],["carbs","C"],["fat","F"]].map(([k, l]) => `<label>${l}<input data-k="${k}" type="number" inputmode="decimal" min="0" step="any" value="${r1(r[k])}"></label>`).join("")}</div>
+        <div class="row"><button data-esave="${r.id}">Save</button><button class="secondary" data-ecancel="1">Cancel</button></div><p class="status err"></p></div>`;
+      return;
+    }
+    if (t.dataset.ecancel) return refresh();
+    if (t.dataset.esave) {
+      const vals = {}; let bad = false;
+      li.querySelectorAll("input[data-k]").forEach(i => { const v = Number(i.value.replace(",", ".")); if (i.value.trim() === "" || !Number.isFinite(v) || v < 0) bad = true; vals[i.dataset.k] = r1(v); });
+      if (bad) return (li.querySelector(".status").textContent = "Enter numbers of 0 or more.");
+      t.disabled = true;
+      const { error } = await sb.from("meal_items").update(vals).eq("id", t.dataset.esave);
+      if (error) { t.disabled = false; return (li.querySelector(".status").textContent = "Save failed: " + error.message); }
+      refresh();
+    }
+  };
+
+  // Goals
+  let goals = null, lastToday = null, todayRows = {};
+  const GK = [["P", "protein", "p"], ["C", "carbs", "c"], ["F", "fat", "f"]];
+  async function loadGoals() {
+    const { data } = await sb.from("goals").select("*").maybeSingle();
+    goals = data || null; showGoals();
+  }
+  function showGoals() {
+    GK.forEach(([K, name, short]) => {
+      const dir = goals?.[name + "_dir"], g = goals?.[name + "_g"];
+      const has = dir && g != null;
+      $("g" + K).textContent = has ? `Goal: ${dir} ${r1(g)}g` : "";
+      const tot = lastToday?.[short] ?? 0;
+      const met = has && lastToday?.n > 0 && (dir === "over" ? tot >= +g : tot <= +g);
+      $("m" + K).classList.toggle("hidden", !met);
+    });
+  }
+  $("goalsBtn").onclick = () => {
+    const f = $("goalsForm"); const open = f.classList.toggle("hidden") === false;
+    if (open) GK.forEach(([K, name]) => { $("d" + K).value = goals?.[name + "_dir"] || ""; $("v" + K).value = goals?.[name + "_g"] ?? ""; });
+    $("goalsMsg").textContent = "";
+  };
+  $("goalsCancel").onclick = () => $("goalsForm").classList.add("hidden");
+  $("goalsSave").onclick = async () => {
+    const row = { updated_at: new Date().toISOString() };
+    for (const [K, name] of GK) {
+      const dir = $("d" + K).value, raw = $("v" + K).value.trim(), v = Number(raw.replace(",", "."));
+      if (dir && (raw === "" || !Number.isFinite(v) || v < 0)) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `Enter grams (0 or more) for ${name}.`); }
+      row[name + "_dir"] = dir || null; row[name + "_g"] = dir ? r1(v) : null;
+    }
+    const { data: { user } } = await sb.auth.getUser(); row.user_id = user.id;
+    $("goalsSave").disabled = true;
+    const { data, error } = await sb.from("goals").upsert(row).select().maybeSingle();
+    $("goalsSave").disabled = false;
+    if (error) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = "Save failed: " + error.message); }
+    goals = data || row; showGoals(); $("goalsForm").classList.add("hidden");
   };
 
   async function loadYear() {
