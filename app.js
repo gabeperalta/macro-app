@@ -160,7 +160,7 @@
     const ds = (label, key, color) => ({ label, data: avg.map(x => Math.round(x[key])), backgroundColor: color });
     const datasets = [ds("Protein", "p", "#3b82f6"), ds("Carbs", "c", "#ef4444"), ds("Fats", "f", "#22c55e")];
     if (yearChart) { yearChart.data.labels = labels; yearChart.data.datasets = datasets; return yearChart.update(); }
-    yearChart = new Chart($("yearChart"), { type: "bar", data: { labels, datasets }, options: chartOpts("g") });
+    yearChart = new Chart($("yearChart"), { type: "bar", data: { labels, datasets }, options: chartOpts() });
   }
   const chartOpts = yTitle => ({ maintainAspectRatio: false, plugins: { legend: { labels: { color: "#9aa3b2", boxWidth: 12 } } },
     scales: { x: { ticks: { color: "#9aa3b2" }, grid: { color: "#2c313c" } },
