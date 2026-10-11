@@ -55,6 +55,13 @@
 
   function status(text, isErr) { const s = $("status"); s.textContent = text || ""; s.classList.toggle("err", !!isErr); }
 
+  // Reload when the local calendar day rolls over (app reopened / refocused after midnight).
+  let shownDay = null;
+  const dayCheck = () => { if (!document.hidden && shownDay && shownDay !== dayKey(new Date()) && !$("app").classList.contains("hidden")) refresh(); };
+  document.addEventListener("visibilitychange", dayCheck); window.addEventListener("focus", dayCheck);
+  setInterval(dayCheck, 60000);
+
+  // Week query starts at LOCAL midnight 6 days ago (device timezone), sent as ISO/UTC; "today" = local dayKey.
   async function refresh() {
     const start = new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate() - 6);
     const { data, error } = await sb.from("meal_items").select("*").gte("eaten_at", start.toISOString()).order("eaten_at");
@@ -66,6 +73,10 @@
     const today = tot[dayKey(new Date())];
     $("tP").textContent = Math.round(today.p) + "g"; $("tC").textContent = Math.round(today.c) + "g"; $("tF").textContent = Math.round(today.f) + "g";
     lastToday = { ...today, n: data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).length }; showGoals();
+    const logged = days.map(d => tot[dayKey(d)]).filter((t, i) => data.some(r => dayKey(r.eaten_at) === dayKey(days[i])));
+    const wavg = k => logged.length ? Math.round(logged.reduce((s, t) => s + t[k], 0) / logged.length) : 0;
+    $("wP").textContent = wavg("p") + "g"; $("wC").textContent = wavg("c") + "g"; $("wF").textContent = wavg("f") + "g";
+    shownDay = dayKey(new Date());
     drawChart(days.map(d => d.toLocaleDateString(undefined, { weekday: "short" })), days.map(d => tot[dayKey(d)]));
     loadYear();
     todayRows = {};
