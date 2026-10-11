@@ -82,7 +82,7 @@
     todayRows = {};
     const todays = data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).reverse();
     todays.forEach(r => todayRows[r.id] = r);
-    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit">✏️</button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
+    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
   }
   $("todayList").onclick = async e => {
     const t = e.target.closest("button"); if (!t) return;
