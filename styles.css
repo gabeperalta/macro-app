@@ -58,3 +58,5 @@ button.small{padding:6px 12px;font-size:14px}
 .panel.kcal b{font-size:28px}.panel.slim{padding:10px 8px;margin:4px 0 12px}.panel.slim b{font-size:22px}
 .panels.four{grid-template-columns:repeat(2,1fr)}
 .panel.kcal:not(.wide){border-color:#FFD700}
+
+#todayList{position:relative}#todayList.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-bottom:1px solid #2c313c}

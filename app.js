@@ -88,7 +88,15 @@
     const todays = data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).reverse();
     todays.forEach(r => todayRows[r.id] = r);
     $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>${fmtK(itemK(r))} · P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
+    fitList();
   }
+  // Show at most 3 items; the rest scroll inside the list.
+  function fitList() {
+    const ul = $("todayList"), lis = [...ul.children];
+    if (lis.length <= 3 || lis.some(li => li.classList.contains("editing"))) { ul.style.maxHeight = ""; ul.classList.remove("scroll"); return; }
+    ul.style.maxHeight = (lis[3].offsetTop - lis[0].offsetTop) + "px"; ul.classList.add("scroll");
+  }
+  window.addEventListener("resize", fitList);
   $("todayList").onclick = async e => {
     const t = e.target.closest("button"); if (!t) return;
     const li = t.closest("li");
@@ -99,6 +107,7 @@
       li.innerHTML = `<div class="editrow"><div class="ename">${esc(r.name)}</div>
         <div class="efields">${[["protein","P"],["carbs","C"],["fat","F"],["calories","kcal"]].map(([k, l]) => `<label>${l}<input data-k="${k}" type="number" inputmode="decimal" min="0" step="any" value="${k === "calories" ? Math.round(itemK(r)) : r1(r[k])}"></label>`).join("")}</div>
         <div class="row"><button data-esave="${r.id}">Save</button><button class="secondary" data-ecancel="1">Cancel</button></div><p class="status err"></p></div>`;
+      fitList(); li.scrollIntoView({ block: "nearest" });
       return;
     }
     if (t.dataset.ecancel) return refresh();
