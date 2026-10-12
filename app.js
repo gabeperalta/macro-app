@@ -120,7 +120,7 @@
   const gname = name => name === "cal" ? "calories" : name;
   async function loadGoals() {
     const { data } = await sb.from("goals").select("*").maybeSingle();
-    goals = data || null; showGoals();
+    goals = data || null; goalsLoaded = true; showGoals();
   }
   // Shared goal logic: used by the Today panels and the Records counts.
   function goalFor(name) {
@@ -132,7 +132,7 @@
     return goal.dir === "over" ? total >= goal.g : goal.dir === "under" ? total <= goal.g : total >= goal.g && total <= goal.mx;
   }
   function showGoals() {
-    showRecords();
+    syncToday();
     GK.forEach(([K, name, short]) => {
       const goal = goalFor(name), has = !!goal, dir = goal?.dir, g = goal?.g, mx = goal?.mx;
       $("g" + K).textContent = !has ? "" : dir === "range" ? `Goal: ${gfmt(K, g)}–${gfmt(K, mx)}${gunit(K)}` : `Goal: ${dir} ${gfmt(K, g)}${gunit(K)}`;
@@ -171,25 +171,38 @@
     goals = data || row; showGoals(); $("goalsForm").classList.add("hidden");
   };
 
-  let dayTotals = null;
-  function showRecords() {
-    if (!dayTotals) return;
+  // Locked-in daily records: only TODAY's rows are written (local date), judged against the goals right now.
+  let goalsLoaded = false, syncSeq = 0;
+  const RITEM = { K: "calories", P: "protein", C: "carbs", F: "fat" };
+  async function syncToday() {
+    if (!goalsLoaded || !lastToday) return;
+    const seq = ++syncSeq, day = dayKey(new Date());
+    const { data: { user } } = await sb.auth.getUser(); if (!user) return;
+    const rows = [], drop = [];
     GK.forEach(([K, name, short]) => {
       const goal = goalFor(name);
-      $("r" + K).textContent = goal ? (n => `${n.toLocaleString()} day${n === 1 ? "" : "s"}`)(Object.values(dayTotals).filter(d => goalMet(goal, d[short], d.n)).length) : "—";
-      $("rs" + K).textContent = goal ? "Goal met" : "No goal set";
+      if (!goal || !(lastToday.n > 0)) return drop.push(RITEM[K]);
+      rows.push({ user_id: user.id, day, item: RITEM[K], met: goalMet(goal, lastToday[short], lastToday.n), total: r1(lastToday[short]),
+        goal_dir: goal.dir, goal_min: goal.g, goal_max: goal.dir === "range" ? goal.mx : null });
+    });
+    if (rows.length) await sb.from("daily_records").upsert(rows);
+    if (drop.length) await sb.from("daily_records").delete().eq("day", day).in("item", drop);
+    if (seq === syncSeq) loadRecords();
+  }
+  async function loadRecords() {
+    const { data, error } = await sb.from("daily_records").select("item").eq("met", true).limit(20000);
+    if (error) return;
+    const cnt = {}; data.forEach(r => cnt[r.item] = (cnt[r.item] || 0) + 1);
+    GK.forEach(([K, name]) => {
+      const n = cnt[RITEM[K]] || 0, goal = goalFor(name);
+      $("r" + K).textContent = goal || n ? `${n.toLocaleString()} day${n === 1 ? "" : "s"}` : "—";
+      $("rs" + K).textContent = goal ? "Goal met" : n ? "Goal met (no current goal)" : "No goal set";
     });
   }
   async function loadYear() {
     const now = new Date(), start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    // One fetch of all stored history (retention keeps ~12 months): feeds Records and the Last Year chart.
-    const { data: all, error } = await sb.from("meal_items").select("eaten_at,protein,carbs,fat").order("eaten_at").limit(50000);
+    const { data, error } = await sb.from("meal_items").select("eaten_at,protein,carbs,fat").gte("eaten_at", start.toISOString()).limit(20000);
     if (error) return;
-    const byDay = {};
-    all.forEach(r => { const d = byDay[dayKey(r.eaten_at)] ||= { p: 0, c: 0, f: 0, n: 0 }; d.p += +r.protein; d.c += +r.carbs; d.f += +r.fat; d.n++; });
-    Object.values(byDay).forEach(d => d.k = kcal(d.p, d.c, d.f));
-    dayTotals = byDay; showRecords();
-    const data = all.filter(r => new Date(r.eaten_at) >= start);
     const months = [];
     for (let i = 0; i < 12; i++) months.push(new Date(start.getFullYear(), start.getMonth() + i, 1));
     const mk = d => { const x = new Date(d); return x.getFullYear() * 12 + x.getMonth(); };
