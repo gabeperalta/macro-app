@@ -214,12 +214,9 @@
     const avg = months.map(m => { const t = tot[mk(m)], n = t.days.size || 1; return { p: t.p / n, c: t.c / n, f: t.f / n, k: t.k / n }; });
     const labels = months.map(m => m.toLocaleDateString(undefined, { month: "short" }));
     const ds = (label, key, color, yAxisID = "y") => ({ label, data: avg.map(x => Math.round(x[key])), backgroundColor: color, yAxisID });
-    const datasets = [ds("Protein", "p", "#3b82f6"), ds("Carbs", "c", "#ef4444"), ds("Fats", "f", "#22c55e"), ds("cal", "k", "#FFD700", "y2")];
+    const datasets = [ds("Protein", "p", "#3b82f6"), ds("Carbs", "c", "#ef4444"), ds("Fats", "f", "#22c55e")];
     if (yearChart) { yearChart.data.labels = labels; yearChart.data.datasets = datasets; return yearChart.update(); }
-    const opts = chartOpts();
-    // Calories (~10x grams) on a right-hand axis so the macro bars stay readable.
-    opts.scales.y2 = { position: "right", beginAtZero: true, ticks: { color: "#FFD700" }, grid: { drawOnChartArea: false } };
-    yearChart = new Chart($("yearChart"), { type: "bar", data: { labels, datasets }, options: opts });
+    yearChart = new Chart($("yearChart"), { type: "bar", data: { labels, datasets }, options: chartOpts() });
   }
   const chartOpts = yTitle => ({ maintainAspectRatio: false, plugins: { legend: { labels: { color: "#9aa3b2", boxWidth: 12 } } },
     scales: { x: { ticks: { color: "#9aa3b2" }, grid: { color: "#2c313c" } },
