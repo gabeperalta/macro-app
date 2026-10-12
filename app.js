@@ -92,11 +92,14 @@
   }
   // Show at most 3 items; the rest scroll inside the list.
   function fitList() {
-    const ul = $("todayList"), lis = [...ul.children];
-    if (lis.length <= 3 || lis.some(li => li.classList.contains("editing"))) { ul.style.maxHeight = ""; ul.classList.remove("scroll"); return; }
-    ul.style.maxHeight = (lis[3].offsetTop - lis[0].offsetTop) + "px"; ul.classList.add("scroll");
-  }
-  window.addEventListener("resize", fitList);
+  const ul = $("todayList"), lis = [...ul.children];
+  if (lis.some(li => li.classList.contains("editing"))) { ul.style.height = ""; ul.style.maxHeight = ""; return; }
+  ul.style.maxHeight = "";
+  const row = lis[0] ? lis[0].offsetHeight : 0;
+  const h = lis.length > 3 ? (lis[3].offsetTop - lis[0].offsetTop) : (row || 56) * 3;
+  ul.style.height = h + "px"; ul.classList.add("scroll");
+}
+window.addEventListener("resize", fitList);
   $("todayList").onclick = async e => {
     const t = e.target.closest("button"); if (!t) return;
     const li = t.closest("li");

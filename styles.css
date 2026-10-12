@@ -60,3 +60,5 @@ button.small{padding:6px 12px;font-size:14px}
 .panel.kcal:not(.wide){border-color:#FFD700}
 
 #todayList{position:relative}#todayList.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-bottom:1px solid #2c313c}
+
+#todayList.scroll{overflow-y:scroll}#todayList.scroll::-webkit-scrollbar{width:6px;-webkit-appearance:none}#todayList.scroll::-webkit-scrollbar-thumb{background:#5a6170;border-radius:3px}
