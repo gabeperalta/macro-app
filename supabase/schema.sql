@@ -153,3 +153,10 @@ alter table public.goals drop constraint if exists goals_fat_dir_check;
 alter table public.goals add constraint goals_protein_dir_check check (protein_dir in ('over','under','range'));
 alter table public.goals add constraint goals_carbs_dir_check   check (carbs_dir in ('over','under','range'));
 alter table public.goals add constraint goals_fat_dir_check     check (fat_dir in ('over','under','range'));
+
+-- Calorie goal (same over/under/range rules). Safe to re-run.
+alter table public.goals add column if not exists cal_dir text;
+alter table public.goals add column if not exists cal_g   numeric check (cal_g >= 0);
+alter table public.goals add column if not exists cal_max numeric check (cal_max >= 0);
+alter table public.goals drop constraint if exists goals_cal_dir_check;
+alter table public.goals add constraint goals_cal_dir_check check (cal_dir in ('over','under','range'));

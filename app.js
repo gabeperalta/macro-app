@@ -75,7 +75,7 @@
     const today = tot[dayKey(new Date())];
     $("tP").textContent = Math.round(today.p) + "g"; $("tC").textContent = Math.round(today.c) + "g"; $("tF").textContent = Math.round(today.f) + "g";
     $("tK").textContent = fmtK(kcal(today.p, today.c, today.f));
-    lastToday = { ...today, n: data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).length }; showGoals();
+    lastToday = { ...today, k: kcal(today.p, today.c, today.f), n: data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).length }; showGoals();
     const logged = days.map(d => tot[dayKey(d)]).filter((t, i) => data.some(r => dayKey(r.eaten_at) === dayKey(days[i])));
     const wavg = k => logged.length ? Math.round(logged.reduce((s, t) => s + t[k], 0) / logged.length) : 0;
     $("wP").textContent = wavg("p") + "g"; $("wC").textContent = wavg("c") + "g"; $("wF").textContent = wavg("f") + "g";
@@ -114,7 +114,10 @@
 
   // Goals
   let goals = null, lastToday = null, todayRows = {};
-  const GK = [["P", "protein", "p"], ["C", "carbs", "c"], ["F", "fat", "f"]];
+  const GK = [["P", "protein", "p"], ["C", "carbs", "c"], ["F", "fat", "f"], ["K", "cal", "k"]];
+  const gfmt = (K, n) => K === "K" ? Math.round(n).toLocaleString() : r1(n);
+  const gunit = K => K === "K" ? " kcal" : "g";
+  const gname = name => name === "cal" ? "calories" : name;
   async function loadGoals() {
     const { data } = await sb.from("goals").select("*").maybeSingle();
     goals = data || null; showGoals();
@@ -123,7 +126,7 @@
     GK.forEach(([K, name, short]) => {
       const dir = goals?.[name + "_dir"], g = goals?.[name + "_g"], mx = goals?.[name + "_max"];
       const has = dir && g != null && (dir !== "range" || mx != null);
-      $("g" + K).textContent = !has ? "" : dir === "range" ? `Goal: ${r1(g)}–${r1(mx)}g` : `Goal: ${dir} ${r1(g)}g`;
+      $("g" + K).textContent = !has ? "" : dir === "range" ? `Goal: ${gfmt(K, g)}–${gfmt(K, mx)}${gunit(K)}` : `Goal: ${dir} ${gfmt(K, g)}${gunit(K)}`;
       const tot = lastToday?.[short] ?? 0;
       const met = has && lastToday?.n > 0 && (dir === "over" ? tot >= +g : dir === "under" ? tot <= +g : tot >= +g && tot <= +mx);
       $("m" + K).classList.toggle("hidden", !met);
@@ -135,21 +138,21 @@
     $("goalsMsg").textContent = "";
   };
   // Range shows Min + Max inputs instead of the single value.
-  function rangeUI(K) { const r = $("d" + K).value === "range"; $("x" + K).classList.toggle("hidden", !r); $("v" + K).placeholder = r ? "Min" : "g"; }
+  function rangeUI(K) { const r = $("d" + K).value === "range"; $("x" + K).classList.toggle("hidden", !r); $("v" + K).placeholder = r ? "Min" : K === "K" ? "kcal" : "g"; }
   GK.forEach(([K]) => $("d" + K).addEventListener("change", () => rangeUI(K)));
   $("goalsCancel").onclick = () => $("goalsForm").classList.add("hidden");
   $("goalsSave").onclick = async () => {
     const row = { updated_at: new Date().toISOString() };
     for (const [K, name] of GK) {
       const dir = $("d" + K).value, raw = $("v" + K).value.trim(), v = Number(raw.replace(",", "."));
-      if (dir && (raw === "" || !Number.isFinite(v) || v < 0)) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `Enter grams (0 or more) for ${name}.`); }
+      if (dir && (raw === "" || !Number.isFinite(v) || v < 0)) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `Enter a value (0 or more) for ${gname(name)}.`); }
       let mx = null;
       if (dir === "range") {
         const rawx = $("x" + K).value.trim(); mx = Number(rawx.replace(",", "."));
-        if (rawx === "" || !Number.isFinite(mx) || mx < 0) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `Enter a max (0 or more) for ${name}.`); }
-        if (v > mx) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `${name}: min must be less than or equal to max.`); }
+        if (rawx === "" || !Number.isFinite(mx) || mx < 0) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `Enter a max (0 or more) for ${gname(name)}.`); }
+        if (v > mx) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `${gname(name)}: min must be less than or equal to max.`); }
       }
-      row[name + "_dir"] = dir || null; row[name + "_g"] = dir ? r1(v) : null; row[name + "_max"] = dir === "range" ? r1(mx) : null;
+      row[name + "_dir"] = dir || null; row[name + "_g"] = dir ? (K === "K" ? Math.round(v) : r1(v)) : null; row[name + "_max"] = dir === "range" ? (K === "K" ? Math.round(mx) : r1(mx)) : null;
     }
     const { data: { user } } = await sb.auth.getUser(); row.user_id = user.id;
     $("goalsSave").disabled = true;
