@@ -9,6 +9,7 @@
   const validUser = u => /^[a-z0-9_.-]{3,30}$/i.test(u.trim());
   const dayKey = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; };
   const kcal = (p, c, f) => 4 * (+p || 0) + 4 * (+c || 0) + 9 * (+f || 0);
+  const itemK = r => r.calories != null ? +r.calories : kcal(r.protein, r.carbs, r.fat); // stored calories (fallback: estimate)
   const fmtK = n => Math.round(n).toLocaleString() + " kcal";
   const r1 = n => Math.round((Number(n) || 0) * 10) / 10;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -70,23 +71,23 @@
     if (error) return status("Load failed: " + error.message, true);
     const days = [];
     for (let i = 0; i < 7; i++) { const d = new Date(start); d.setDate(start.getDate() + i); days.push(d); }
-    const tot = Object.fromEntries(days.map(d => [dayKey(d), { p: 0, c: 0, f: 0 }]));
-    data.forEach(r => { const t = tot[dayKey(r.eaten_at)]; if (t) { t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; } });
+    const tot = Object.fromEntries(days.map(d => [dayKey(d), { p: 0, c: 0, f: 0, k: 0 }]));
+    data.forEach(r => { const t = tot[dayKey(r.eaten_at)]; if (t) { t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; t.k += itemK(r); } });
     const today = tot[dayKey(new Date())];
     $("tP").textContent = Math.round(today.p) + "g"; $("tC").textContent = Math.round(today.c) + "g"; $("tF").textContent = Math.round(today.f) + "g";
-    $("tK").textContent = fmtK(kcal(today.p, today.c, today.f));
-    lastToday = { ...today, k: kcal(today.p, today.c, today.f), n: data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).length }; showGoals();
+    $("tK").textContent = fmtK(today.k);
+    lastToday = { ...today, n: data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).length }; showGoals();
     const logged = days.map(d => tot[dayKey(d)]).filter((t, i) => data.some(r => dayKey(r.eaten_at) === dayKey(days[i])));
     const wavg = k => logged.length ? Math.round(logged.reduce((s, t) => s + t[k], 0) / logged.length) : 0;
     $("wP").textContent = wavg("p") + "g"; $("wC").textContent = wavg("c") + "g"; $("wF").textContent = wavg("f") + "g";
-    $("wK").textContent = fmtK(logged.length ? logged.reduce((s, t) => s + kcal(t.p, t.c, t.f), 0) / logged.length : 0);
+    $("wK").textContent = fmtK(logged.length ? logged.reduce((s, t) => s + t.k, 0) / logged.length : 0);
     shownDay = dayKey(new Date());
     drawChart(days.map(d => d.toLocaleDateString(undefined, { weekday: "short" })), days.map(d => tot[dayKey(d)]));
     loadYear();
     todayRows = {};
     const todays = data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).reverse();
     todays.forEach(r => todayRows[r.id] = r);
-    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>${fmtK(kcal(r.protein, r.carbs, r.fat))} · P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
+    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>${fmtK(itemK(r))} · P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
   }
   $("todayList").onclick = async e => {
     const t = e.target.closest("button"); if (!t) return;
@@ -96,7 +97,7 @@
       const r = todayRows[t.dataset.edit]; if (!r) return;
       li.classList.add("editing");
       li.innerHTML = `<div class="editrow"><div class="ename">${esc(r.name)}</div>
-        <div class="efields">${[["protein","P"],["carbs","C"],["fat","F"]].map(([k, l]) => `<label>${l}<input data-k="${k}" type="number" inputmode="decimal" min="0" step="any" value="${r1(r[k])}"></label>`).join("")}</div>
+        <div class="efields">${[["protein","P"],["carbs","C"],["fat","F"],["calories","kcal"]].map(([k, l]) => `<label>${l}<input data-k="${k}" type="number" inputmode="decimal" min="0" step="any" value="${k === "calories" ? Math.round(itemK(r)) : r1(r[k])}"></label>`).join("")}</div>
         <div class="row"><button data-esave="${r.id}">Save</button><button class="secondary" data-ecancel="1">Cancel</button></div><p class="status err"></p></div>`;
       return;
     }
@@ -105,6 +106,8 @@
       const vals = {}; let bad = false;
       li.querySelectorAll("input[data-k]").forEach(i => { const v = Number(i.value.replace(",", ".")); if (i.value.trim() === "" || !Number.isFinite(v) || v < 0) bad = true; vals[i.dataset.k] = r1(v); });
       if (bad) return (li.querySelector(".status").textContent = "Enter numbers of 0 or more.");
+      const orig = todayRows[t.dataset.esave];
+      if (orig && Math.round(itemK(orig)) !== Math.round(vals.calories)) vals.calories_source = "manual";
       t.disabled = true;
       const { error } = await sb.from("meal_items").update(vals).eq("id", t.dataset.esave);
       if (error) { t.disabled = false; return (li.querySelector(".status").textContent = "Save failed: " + error.message); }
@@ -201,7 +204,7 @@
   }
   async function loadYear() {
     const now = new Date(), start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    const { data, error } = await sb.from("meal_items").select("eaten_at,protein,carbs,fat").gte("eaten_at", start.toISOString()).limit(20000);
+    const { data, error } = await sb.from("meal_items").select("eaten_at,protein,carbs,fat,calories").gte("eaten_at", start.toISOString()).limit(20000);
     if (error) return;
     const months = [];
     for (let i = 0; i < 12; i++) months.push(new Date(start.getFullYear(), start.getMonth() + i, 1));
@@ -209,7 +212,7 @@
     const tot = Object.fromEntries(months.map(m => [mk(m), { p: 0, c: 0, f: 0, days: new Set() }]));
     data.forEach(r => { const t = tot[mk(r.eaten_at)]; if (t) { t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; t.days.add(dayKey(r.eaten_at)); } });
     const allDays = new Set(data.map(r => dayKey(r.eaten_at)));
-    $("yK").textContent = fmtK(allDays.size ? data.reduce((s, r) => s + kcal(r.protein, r.carbs, r.fat), 0) / allDays.size : 0);
+    $("yK").textContent = fmtK(allDays.size ? data.reduce((s, r) => s + itemK(r), 0) / allDays.size : 0);
     const avg = months.map(m => { const t = tot[mk(m)], n = t.days.size || 1; return { p: t.p / n, c: t.c / n, f: t.f / n }; });
     const labels = months.map(m => m.toLocaleDateString(undefined, { month: "short" }));
     const ds = (label, key, color) => ({ label, data: avg.map(x => Math.round(x[key])), backgroundColor: color });
@@ -242,7 +245,10 @@
       const { data: { user } } = await sb.auth.getUser();
       const now = new Date().toISOString();
       const rows = data.items.map(it => ({ user_id: user.id, eaten_at: now, description: text, name: String(it.name).slice(0, 200),
-        protein: r1(it.protein), carbs: r1(it.carbs), fat: r1(it.fat) }));
+        protein: r1(it.protein), carbs: r1(it.carbs), fat: r1(it.fat),
+        calories: it.calories != null ? r1(it.calories) : r1(kcal(it.protein, it.carbs, it.fat)),
+        calories_source: it.calories != null ? (it.calories_source || it.source || "ai") : "estimate",
+        sodium_mg: it.sodium_mg ?? null, sugar_g: it.sugar_g ?? null, sat_fat_g: it.sat_fat_g ?? null }));
       const { error: saveErr } = await sb.from("meal_items").insert(rows);
       if (saveErr) return status("Save failed: " + saveErr.message, true);
       $("chatInput").value = ""; grow(); // clear only on success so a failed message can be resent

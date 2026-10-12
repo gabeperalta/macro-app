@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
   try {
     let items = await askGemini(text.slice(0, 1000));
     if (Deno.env.get("DB_LOOKUP") !== "off") items = await Promise.all(items.map(lookup));
-    return json({ items: items.map(({ name, protein, carbs, fat, source }) => ({ name, protein, carbs, fat, source })) });
+    return json({ items: items.map(({ name, protein, carbs, fat, calories, sodium_mg, sugar_g, sat_fat_g, source, calories_source }) => ({ name, protein, carbs, fat, calories, sodium_mg, sugar_g, sat_fat_g, source, calories_source })) });
   } catch (e) {
     const msg = String((e as Error).message || e);
     return json({ error: msg.replace(/^AI_BUSY: /, ""), code: msg.startsWith("AI_BUSY") ? "ai_busy" : "error" }, msg.startsWith("AI_BUSY") ? 503 : 502);
