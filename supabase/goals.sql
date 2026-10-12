@@ -25,3 +25,14 @@ create policy "own goals update" on public.goals for update to authenticated
   with check (auth.uid() = user_id and exists (select 1 from public.profiles where id = auth.uid() and approved));
 create policy "own goals delete" on public.goals for delete to authenticated
   using (auth.uid() = user_id and exists (select 1 from public.profiles where id = auth.uid() and approved));
+
+-- Range goals (min..max). Safe to re-run; *_g is the value (over/under) or the min (range).
+alter table public.goals add column if not exists protein_max numeric check (protein_max >= 0);
+alter table public.goals add column if not exists carbs_max   numeric check (carbs_max >= 0);
+alter table public.goals add column if not exists fat_max     numeric check (fat_max >= 0);
+alter table public.goals drop constraint if exists goals_protein_dir_check;
+alter table public.goals drop constraint if exists goals_carbs_dir_check;
+alter table public.goals drop constraint if exists goals_fat_dir_check;
+alter table public.goals add constraint goals_protein_dir_check check (protein_dir in ('over','under','range'));
+alter table public.goals add constraint goals_carbs_dir_check   check (carbs_dir in ('over','under','range'));
+alter table public.goals add constraint goals_fat_dir_check     check (fat_dir in ('over','under','range'));

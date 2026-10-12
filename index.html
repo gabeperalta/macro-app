@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
 <header><h1>Macro Log</h1>
@@ -41,9 +41,9 @@
     <div class="todayhead"><h2>Today</h2><button id="goalsBtn" class="secondary small">🎯 Goals</button></div>
     <div id="goalsForm" class="card hidden">
       <h2>Daily goals</h2>
-      <div class="grow"><label>Protein</label><select id="dP"><option value="">No goal</option><option value="over">Over</option><option value="under">Under</option></select><input id="vP" type="number" inputmode="decimal" min="0" step="any" placeholder="g"></div>
-      <div class="grow"><label>Carbs</label><select id="dC"><option value="">No goal</option><option value="over">Over</option><option value="under">Under</option></select><input id="vC" type="number" inputmode="decimal" min="0" step="any" placeholder="g"></div>
-      <div class="grow"><label>Fats</label><select id="dF"><option value="">No goal</option><option value="over">Over</option><option value="under">Under</option></select><input id="vF" type="number" inputmode="decimal" min="0" step="any" placeholder="g"></div>
+      <div class="grow"><label>Protein</label><select id="dP"><option value="">No goal</option><option value="over">Over</option><option value="under">Under</option><option value="range">Range</option></select><div class="gvals"><input id="vP" type="number" inputmode="decimal" min="0" step="any" placeholder="g"><input id="xP" class="hidden" type="number" inputmode="decimal" min="0" step="any" placeholder="Max"></div></div>
+      <div class="grow"><label>Carbs</label><select id="dC"><option value="">No goal</option><option value="over">Over</option><option value="under">Under</option><option value="range">Range</option></select><div class="gvals"><input id="vC" type="number" inputmode="decimal" min="0" step="any" placeholder="g"><input id="xC" class="hidden" type="number" inputmode="decimal" min="0" step="any" placeholder="Max"></div></div>
+      <div class="grow"><label>Fats</label><select id="dF"><option value="">No goal</option><option value="over">Over</option><option value="under">Under</option><option value="range">Range</option></select><div class="gvals"><input id="vF" type="number" inputmode="decimal" min="0" step="any" placeholder="g"><input id="xF" class="hidden" type="number" inputmode="decimal" min="0" step="any" placeholder="Max"></div></div>
       <div class="row"><button id="goalsSave">Save goals</button><button id="goalsCancel" class="secondary">Cancel</button></div>
       <p id="goalsMsg" class="status"></p>
     </div>
@@ -89,6 +89,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=18"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

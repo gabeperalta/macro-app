@@ -117,26 +117,35 @@
   }
   function showGoals() {
     GK.forEach(([K, name, short]) => {
-      const dir = goals?.[name + "_dir"], g = goals?.[name + "_g"];
-      const has = dir && g != null;
-      $("g" + K).textContent = has ? `Goal: ${dir} ${r1(g)}g` : "";
+      const dir = goals?.[name + "_dir"], g = goals?.[name + "_g"], mx = goals?.[name + "_max"];
+      const has = dir && g != null && (dir !== "range" || mx != null);
+      $("g" + K).textContent = !has ? "" : dir === "range" ? `Goal: ${r1(g)}–${r1(mx)}g` : `Goal: ${dir} ${r1(g)}g`;
       const tot = lastToday?.[short] ?? 0;
-      const met = has && lastToday?.n > 0 && (dir === "over" ? tot >= +g : tot <= +g);
+      const met = has && lastToday?.n > 0 && (dir === "over" ? tot >= +g : dir === "under" ? tot <= +g : tot >= +g && tot <= +mx);
       $("m" + K).classList.toggle("hidden", !met);
     });
   }
   $("goalsBtn").onclick = () => {
     const f = $("goalsForm"); const open = f.classList.toggle("hidden") === false;
-    if (open) GK.forEach(([K, name]) => { $("d" + K).value = goals?.[name + "_dir"] || ""; $("v" + K).value = goals?.[name + "_g"] ?? ""; });
+    if (open) GK.forEach(([K, name]) => { $("d" + K).value = goals?.[name + "_dir"] || ""; $("v" + K).value = goals?.[name + "_g"] ?? ""; $("x" + K).value = goals?.[name + "_max"] ?? ""; rangeUI(K); });
     $("goalsMsg").textContent = "";
   };
+  // Range shows Min + Max inputs instead of the single value.
+  function rangeUI(K) { const r = $("d" + K).value === "range"; $("x" + K).classList.toggle("hidden", !r); $("v" + K).placeholder = r ? "Min" : "g"; }
+  GK.forEach(([K]) => $("d" + K).addEventListener("change", () => rangeUI(K)));
   $("goalsCancel").onclick = () => $("goalsForm").classList.add("hidden");
   $("goalsSave").onclick = async () => {
     const row = { updated_at: new Date().toISOString() };
     for (const [K, name] of GK) {
       const dir = $("d" + K).value, raw = $("v" + K).value.trim(), v = Number(raw.replace(",", "."));
       if (dir && (raw === "" || !Number.isFinite(v) || v < 0)) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `Enter grams (0 or more) for ${name}.`); }
-      row[name + "_dir"] = dir || null; row[name + "_g"] = dir ? r1(v) : null;
+      let mx = null;
+      if (dir === "range") {
+        const rawx = $("x" + K).value.trim(); mx = Number(rawx.replace(",", "."));
+        if (rawx === "" || !Number.isFinite(mx) || mx < 0) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `Enter a max (0 or more) for ${name}.`); }
+        if (v > mx) { $("goalsMsg").classList.add("err"); return ($("goalsMsg").textContent = `${name}: min must be less than or equal to max.`); }
+      }
+      row[name + "_dir"] = dir || null; row[name + "_g"] = dir ? r1(v) : null; row[name + "_max"] = dir === "range" ? r1(mx) : null;
     }
     const { data: { user } } = await sb.auth.getUser(); row.user_id = user.id;
     $("goalsSave").disabled = true;

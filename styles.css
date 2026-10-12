@@ -42,7 +42,7 @@ button.small{padding:6px 12px;font-size:14px}
 .panel{display:flex;flex-direction:column;align-items:center;min-width:0}
 .panel .met{display:block;color:#FFD700;font-weight:800;font-style:normal;font-size:13px;margin-top:2px}
 .panel .goal{display:block;color:var(--mut);font-size:12px;margin-top:2px;line-height:1.2}
-.grow{display:grid;grid-template-columns:64px 1fr 90px;gap:8px;align-items:center;margin:6px 0}
+.grow{display:grid;grid-template-columns:64px 1fr 130px;gap:8px;align-items:center;margin:6px 0}
 .grow label{color:var(--mut);font-size:15px}
 .grow select,.grow input{width:100%;padding:10px;border-radius:10px;border:1px solid #2c313c;background:#11141a;color:var(--txt);font-size:16px;margin:0}
 .acts{display:flex;gap:2px;flex:0 0 auto}
@@ -53,3 +53,4 @@ button.small{padding:6px 12px;font-size:14px}
 .caption{margin:8px 2px 10px}
 .list li button.link svg{display:block;pointer-events:none}
 .mic{display:flex;align-items:center;justify-content:center;color:#fff}.mic svg{display:block;pointer-events:none}
+.gvals{display:flex;gap:6px}.gvals input{min-width:0}
