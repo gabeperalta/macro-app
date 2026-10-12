@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
 <header><h1>Macro Log</h1>
@@ -47,6 +47,7 @@
       <div class="row"><button id="goalsSave">Save goals</button><button id="goalsCancel" class="secondary">Cancel</button></div>
       <p id="goalsMsg" class="status"></p>
     </div>
+    <div class="panel kcal wide"><span>Calories</span><b id="tK">0 kcal</b><em id="mK" class="met hidden">Goal Met!</em><small id="gK" class="goal"></small></div>
     <div class="panels">
       <div class="panel protein"><span>Protein</span><b id="tP">0g</b><em id="mP" class="met hidden">Goal Met!</em><small id="gP" class="goal"></small></div>
       <div class="panel carbs"><span>Carbs</span><b id="tC">0g</b><em id="mC" class="met hidden">Goal Met!</em><small id="gC" class="goal"></small></div>
@@ -78,10 +79,12 @@
       <div class="panel carbs"><span>Carbs</span><b id="wC">0g</b><small class="goal">Avg</small></div>
       <div class="panel fat"><span>Fats</span><b id="wF">0g</b><small class="goal">Avg</small></div>
     </div>
+    <div class="panel kcal wide slim"><span>Calories</span><b id="wK">0 kcal</b><small class="goal">Avg</small></div>
     <div class="chartwrap"><canvas id="chart"></canvas></div>
   </section>
   <section class="card">
     <h2>Last Year <small class="sub">avg per day, by month</small></h2>
+    <div class="panel kcal wide slim"><span>Calories</span><b id="yK">0 kcal</b><small class="goal">Avg per logged day, last 12 months</small></div>
     <div class="chartwrap"><canvas id="yearChart"></canvas></div>
   </section>
 </main>
@@ -89,6 +92,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>

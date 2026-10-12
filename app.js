@@ -8,6 +8,8 @@
   const toEmail = u => `${u.trim().toLowerCase()}@${cfg.USERNAME_DOMAIN}`;
   const validUser = u => /^[a-z0-9_.-]{3,30}$/i.test(u.trim());
   const dayKey = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; };
+  const kcal = (p, c, f) => 4 * (+p || 0) + 4 * (+c || 0) + 9 * (+f || 0);
+  const fmtK = n => Math.round(n).toLocaleString() + " kcal";
   const r1 = n => Math.round((Number(n) || 0) * 10) / 10;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -72,17 +74,19 @@
     data.forEach(r => { const t = tot[dayKey(r.eaten_at)]; if (t) { t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; } });
     const today = tot[dayKey(new Date())];
     $("tP").textContent = Math.round(today.p) + "g"; $("tC").textContent = Math.round(today.c) + "g"; $("tF").textContent = Math.round(today.f) + "g";
+    $("tK").textContent = fmtK(kcal(today.p, today.c, today.f));
     lastToday = { ...today, n: data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).length }; showGoals();
     const logged = days.map(d => tot[dayKey(d)]).filter((t, i) => data.some(r => dayKey(r.eaten_at) === dayKey(days[i])));
     const wavg = k => logged.length ? Math.round(logged.reduce((s, t) => s + t[k], 0) / logged.length) : 0;
     $("wP").textContent = wavg("p") + "g"; $("wC").textContent = wavg("c") + "g"; $("wF").textContent = wavg("f") + "g";
+    $("wK").textContent = fmtK(logged.length ? logged.reduce((s, t) => s + kcal(t.p, t.c, t.f), 0) / logged.length : 0);
     shownDay = dayKey(new Date());
     drawChart(days.map(d => d.toLocaleDateString(undefined, { weekday: "short" })), days.map(d => tot[dayKey(d)]));
     loadYear();
     todayRows = {};
     const todays = data.filter(r => dayKey(r.eaten_at) === dayKey(new Date())).reverse();
     todays.forEach(r => todayRows[r.id] = r);
-    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
+    $("todayList").innerHTML = todays.length ? todays.map(r => `<li><span>${esc(r.name)}<br><small>${fmtK(kcal(r.protein, r.carbs, r.fat))} · P ${r1(r.protein)} · C ${r1(r.carbs)} · F ${r1(r.fat)}</small></span><span class="acts"><button class="link icon" data-edit="${r.id}" aria-label="Edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-del="${r.id}" aria-label="Delete">✕</button></span></li>`).join("") : "<li><small>Nothing logged yet today.</small></li>";
   }
   $("todayList").onclick = async e => {
     const t = e.target.closest("button"); if (!t) return;
@@ -164,6 +168,8 @@
     const mk = d => { const x = new Date(d); return x.getFullYear() * 12 + x.getMonth(); };
     const tot = Object.fromEntries(months.map(m => [mk(m), { p: 0, c: 0, f: 0, days: new Set() }]));
     data.forEach(r => { const t = tot[mk(r.eaten_at)]; if (t) { t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; t.days.add(dayKey(r.eaten_at)); } });
+    const allDays = new Set(data.map(r => dayKey(r.eaten_at)));
+    $("yK").textContent = fmtK(allDays.size ? data.reduce((s, r) => s + kcal(r.protein, r.carbs, r.fat), 0) / allDays.size : 0);
     const avg = months.map(m => { const t = tot[mk(m)], n = t.days.size || 1; return { p: t.p / n, c: t.c / n, f: t.f / n }; });
     const labels = months.map(m => m.toLocaleDateString(undefined, { month: "short" }));
     const ds = (label, key, color) => ({ label, data: avg.map(x => Math.round(x[key])), backgroundColor: color });

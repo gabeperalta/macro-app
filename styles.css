@@ -54,3 +54,5 @@ button.small{padding:6px 12px;font-size:14px}
 .list li button.link svg{display:block;pointer-events:none}
 .mic{display:flex;align-items:center;justify-content:center;color:#fff}.mic svg{display:block;pointer-events:none}
 .gvals{display:flex;gap:6px}.gvals input{min-width:0}
+.panel.wide{width:100%;margin-bottom:10px;border-color:#FFD700}
+.panel.kcal b{font-size:28px}.panel.slim{padding:10px 8px;margin:4px 0 12px}.panel.slim b{font-size:22px}
