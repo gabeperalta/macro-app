@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
 <header><h1>Macro Log</h1>
@@ -88,11 +88,21 @@
     <div class="panel kcal wide slim"><span>Calories</span><b id="yK">0 kcal</b><small class="goal">Avg per logged day, last 12 months</small></div>
     <div class="chartwrap"><canvas id="yearChart"></canvas></div>
   </section>
+  <section class="card">
+    <h2>Records</h2>
+    <div class="panels four">
+      <div class="panel kcal"><span>Calories</span><b id="rK">—</b><small id="rsK" class="goal">No goal set</small></div>
+      <div class="panel protein"><span>Protein</span><b id="rP">—</b><small id="rsP" class="goal">No goal set</small></div>
+      <div class="panel carbs"><span>Carbs</span><b id="rC">—</b><small id="rsC" class="goal">No goal set</small></div>
+      <div class="panel fat"><span>Fats</span><b id="rF">—</b><small id="rsF" class="goal">No goal set</small></div>
+    </div>
+    <p class="sub caption">Days each goal was met, based on your current goals.</p>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

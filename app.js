@@ -122,13 +122,22 @@
     const { data } = await sb.from("goals").select("*").maybeSingle();
     goals = data || null; showGoals();
   }
+  // Shared goal logic: used by the Today panels and the Records counts.
+  function goalFor(name) {
+    const dir = goals?.[name + "_dir"], g = goals?.[name + "_g"], mx = goals?.[name + "_max"];
+    return dir && g != null && (dir !== "range" || mx != null) ? { dir, g: +g, mx: mx == null ? null : +mx } : null;
+  }
+  function goalMet(goal, total, itemCount) {
+    if (!goal || !(itemCount > 0)) return false;
+    return goal.dir === "over" ? total >= goal.g : goal.dir === "under" ? total <= goal.g : total >= goal.g && total <= goal.mx;
+  }
   function showGoals() {
+    showRecords();
     GK.forEach(([K, name, short]) => {
-      const dir = goals?.[name + "_dir"], g = goals?.[name + "_g"], mx = goals?.[name + "_max"];
-      const has = dir && g != null && (dir !== "range" || mx != null);
+      const goal = goalFor(name), has = !!goal, dir = goal?.dir, g = goal?.g, mx = goal?.mx;
       $("g" + K).textContent = !has ? "" : dir === "range" ? `Goal: ${gfmt(K, g)}–${gfmt(K, mx)}${gunit(K)}` : `Goal: ${dir} ${gfmt(K, g)}${gunit(K)}`;
       const tot = lastToday?.[short] ?? 0;
-      const met = has && lastToday?.n > 0 && (dir === "over" ? tot >= +g : dir === "under" ? tot <= +g : tot >= +g && tot <= +mx);
+      const met = goalMet(goal, tot, lastToday?.n);
       $("m" + K).classList.toggle("hidden", !met);
     });
   }
@@ -162,10 +171,25 @@
     goals = data || row; showGoals(); $("goalsForm").classList.add("hidden");
   };
 
+  let dayTotals = null;
+  function showRecords() {
+    if (!dayTotals) return;
+    GK.forEach(([K, name, short]) => {
+      const goal = goalFor(name);
+      $("r" + K).textContent = goal ? (n => `${n.toLocaleString()} day${n === 1 ? "" : "s"}`)(Object.values(dayTotals).filter(d => goalMet(goal, d[short], d.n)).length) : "—";
+      $("rs" + K).textContent = goal ? "Goal met" : "No goal set";
+    });
+  }
   async function loadYear() {
     const now = new Date(), start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    const { data, error } = await sb.from("meal_items").select("eaten_at,protein,carbs,fat").gte("eaten_at", start.toISOString()).limit(20000);
+    // One fetch of all stored history (retention keeps ~12 months): feeds Records and the Last Year chart.
+    const { data: all, error } = await sb.from("meal_items").select("eaten_at,protein,carbs,fat").order("eaten_at").limit(50000);
     if (error) return;
+    const byDay = {};
+    all.forEach(r => { const d = byDay[dayKey(r.eaten_at)] ||= { p: 0, c: 0, f: 0, n: 0 }; d.p += +r.protein; d.c += +r.carbs; d.f += +r.fat; d.n++; });
+    Object.values(byDay).forEach(d => d.k = kcal(d.p, d.c, d.f));
+    dayTotals = byDay; showRecords();
+    const data = all.filter(r => new Date(r.eaten_at) >= start);
     const months = [];
     for (let i = 0; i < 12; i++) months.push(new Date(start.getFullYear(), start.getMonth() + i, 1));
     const mk = d => { const x = new Date(d); return x.getFullYear() * 12 + x.getMonth(); };
