@@ -211,6 +211,10 @@
     const mk = d => { const x = new Date(d); return x.getFullYear() * 12 + x.getMonth(); };
     const tot = Object.fromEntries(months.map(m => [mk(m), { p: 0, c: 0, f: 0, k: 0, days: new Set() }]));
     data.forEach(r => { const t = tot[mk(r.eaten_at)]; if (t) { t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; t.k += itemK(r); t.days.add(dayKey(r.eaten_at)); } });
+    const yd = {};
+    data.forEach(r => { const k = dayKey(r.eaten_at), t = yd[k] || (yd[k] = { p: 0, c: 0, f: 0 }); t.p += +r.protein; t.c += +r.carbs; t.f += +r.fat; });
+    const ylog = Object.values(yd), yavg = k => ylog.length ? Math.round(ylog.reduce((s, t) => s + t[k], 0) / ylog.length) : 0;
+    $("yP").textContent = yavg("p") + "g"; $("yC").textContent = yavg("c") + "g"; $("yF").textContent = yavg("f") + "g";
     const avg = months.map(m => { const t = tot[mk(m)], n = t.days.size || 1; return { p: t.p / n, c: t.c / n, f: t.f / n, k: t.k / n }; });
     const labels = months.map(m => m.toLocaleDateString(undefined, { month: "short" }));
     const ds = (label, key, color, yAxisID = "y") => ({ label, data: avg.map(x => Math.round(x[key])), backgroundColor: color, yAxisID });
