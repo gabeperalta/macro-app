@@ -269,9 +269,10 @@ window.addEventListener("resize", fitList);
     if (error) return (savedMeals = []);
     savedMeals = data.map(m => ({ ...m, items: (m.saved_meal_items || []).sort((a, b) => a.position - b.position) }));
     const sum = m => m.items.reduce((t, i) => ({ k: t.k + (+i.calories || 0), p: t.p + +i.protein, c: t.c + +i.carbs, f: t.f + +i.fat }), { k: 0, p: 0, c: 0, f: 0 });
-    const line = m => { const t = sum(m); return `${fmtK(t.k)} · P ${r1(t.p)} · C ${r1(t.c)} · F ${r1(t.f)}`; };
-    $("smList").innerHTML = savedMeals.map(m => `<li><span>${esc(m.name)}<br><small>${m.items.length} item${m.items.length === 1 ? "" : "s"} · ${line(m)}</small></span><span class="acts"><button class="link icon" data-smedit="${m.id}" aria-label="Edit saved meal"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-smdel="${m.id}" aria-label="Delete saved meal">✕</button></span></li>`).join("");
-    $("pickList").innerHTML = savedMeals.length ? savedMeals.map(m => `<li><button type="button" class="pk" data-pick="${m.id}">${esc(m.name)}<br><small>${line(m)}</small></button></li>`).join("") : "<li><small>No saved meals yet</small></li>";
+    // Three-line summary: title / P C F / calories.
+    const lines = (m, extra = "") => { const t = sum(m); return `<span class="ml"><span class="mt">${esc(m.name)}</span><small>P ${r1(t.p)} · C ${r1(t.c)} · F ${r1(t.f)}</small><small>${fmtK(t.k)}${extra}</small></span>`; };
+    $("smList").innerHTML = savedMeals.map(m => `<li>${lines(m, ` · ${m.items.length} item${m.items.length === 1 ? "" : "s"}`)}<span class="acts"><button class="link icon" data-smedit="${m.id}" aria-label="Edit saved meal"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-smdel="${m.id}" aria-label="Delete saved meal">✕</button></span></li>`).join("");
+    $("pickList").innerHTML = savedMeals.length ? savedMeals.map(m => `<li><button type="button" class="pk" data-pick="${m.id}">${lines(m)}</button></li>`).join("") : "<li><small>No saved meals yet</small></li>";
   }
   $("savedBtn").onclick = () => {
     const open = $("savedForm").classList.toggle("hidden") === false;
