@@ -65,6 +65,18 @@ create policy "own saved meal items" on public.saved_meal_items for all to authe
 - **Saved meals panel** (`#savedForm`, a `.card` like the goals panel): meal name, then rows of Item / P / C / F / kcal (kcal optional, placeholder "auto"), ✕ to remove a row, "+ Add item", Save meal / Cancel. Below that: the user's saved meals with item count and totals, each with ✕ delete (confirm prompt).
 - **Choose saved meal** (`#pick`, bookmark icon, `aria-label="Choose saved meal"`, same `.mic` icon style) sits between the mic and Send. It toggles `#pickList` under the input. Empty state: "No saved meals yet".
 
+## Editing a saved meal (v39)
+- **UI:** each saved meal row has a pencil (same style as Today's items) next to ✕. It opens the same builder prefilled: name plus one row per item, each row carrying `data-id`. The header reads "Edit saved meal" and Save reads "Save changes". Cancel resets the builder to create mode, and deleting the meal being edited also resets it.
+- **RPC** `update_saved_meal(p_id bigint, p_name text, p_items jsonb)`, security definer, in `supabase/saved_meals_edit.sql`. In one transaction it:
+  - checks the caller is approved and owns the meal, and that the name and at least one item are present;
+  - renames the meal;
+  - updates items with an `id` (name, macros, calories, position = array order) and rejects ids that belong to another meal;
+  - inserts items without an `id`;
+  - deletes the meal's items that aren't in the list.
+  Blank calories become 4P+4C+9F, the same as create.
+- **Verified feedback:** the existing `saved_item_retire_fb` trigger deactivates the verified row of any item whose name or macros changed, or that was deleted. Unchanged items keep their row. The next log of the meal creates fresh verified rows for the changed items.
+- The create path is unchanged (direct inserts).
+
 ## 3. Logging behavior
 One tap on a meal in the picker calls `log_saved_meal(id)`, which inserts one `meal_items` row per saved item (and the verified feedback above):
 `user_id`, `eaten_at` = now, `description` = saved meal name, `name`, `protein`, `carbs`, `fat`, `calories`, `calories_source = 'saved_meal'`, `est_*` = same values.

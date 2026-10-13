@@ -254,27 +254,31 @@ window.addEventListener("resize", fitList);
   // Saved meals: build in the panel by the Goals button; log in one tap from the bookmark button.
   let savedMeals = [];
   const smNum = v => { const n = Number(String(v).trim().replace(",", ".")); return String(v).trim() === "" ? null : Number.isFinite(n) && n >= 0 ? n : NaN; };
-  function smRow() {
+  let smEditId = null;
+  function smMode(id) { smEditId = id; $("smSave").textContent = id ? "Save changes" : "Save meal"; document.querySelector("#savedForm h2").textContent = id ? "Edit saved meal" : "Saved meals"; }
+  function smReset() { smMode(null); $("smName").value = ""; $("smRows").innerHTML = ""; $("smRows").append(smRow()); }
+  function smRow(it) {
     const d = document.createElement("div"); d.className = "smrow";
     d.innerHTML = `<input class="smn" type="text" maxlength="200" placeholder="Item"><input class="smp" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><input class="smc" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><input class="smf" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><input class="smk" type="number" inputmode="decimal" min="0" step="any" placeholder="auto"><button type="button" class="link" aria-label="Remove item">✕</button>`;
+    if (it) { d.dataset.id = it.id; d.querySelector(".smn").value = it.name; d.querySelector(".smp").value = r1(it.protein); d.querySelector(".smc").value = r1(it.carbs); d.querySelector(".smf").value = r1(it.fat); d.querySelector(".smk").value = it.calories != null ? r1(it.calories) : ""; }
     d.querySelector("button").onclick = () => { d.remove(); if (!$("smRows").children.length) $("smRows").append(smRow()); };
     return d;
   }
   async function loadSaved() {
-    const { data, error } = await sb.from("saved_meals").select("id,name,created_at,saved_meal_items(name,protein,carbs,fat,calories,position)").order("name");
+    const { data, error } = await sb.from("saved_meals").select("id,name,created_at,saved_meal_items(id,name,protein,carbs,fat,calories,position)").order("name");
     if (error) return (savedMeals = []);
     savedMeals = data.map(m => ({ ...m, items: (m.saved_meal_items || []).sort((a, b) => a.position - b.position) }));
     const sum = m => m.items.reduce((t, i) => ({ k: t.k + (+i.calories || 0), p: t.p + +i.protein, c: t.c + +i.carbs, f: t.f + +i.fat }), { k: 0, p: 0, c: 0, f: 0 });
     const line = m => { const t = sum(m); return `${fmtK(t.k)} · P ${r1(t.p)} · C ${r1(t.c)} · F ${r1(t.f)}`; };
-    $("smList").innerHTML = savedMeals.map(m => `<li><span>${esc(m.name)}<br><small>${m.items.length} item${m.items.length === 1 ? "" : "s"} · ${line(m)}</small></span><span class="acts"><button class="link icon" data-smdel="${m.id}" aria-label="Delete saved meal">✕</button></span></li>`).join("");
+    $("smList").innerHTML = savedMeals.map(m => `<li><span>${esc(m.name)}<br><small>${m.items.length} item${m.items.length === 1 ? "" : "s"} · ${line(m)}</small></span><span class="acts"><button class="link icon" data-smedit="${m.id}" aria-label="Edit saved meal"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button><button class="link icon" data-smdel="${m.id}" aria-label="Delete saved meal">✕</button></span></li>`).join("");
     $("pickList").innerHTML = savedMeals.length ? savedMeals.map(m => `<li><button type="button" class="pk" data-pick="${m.id}">${esc(m.name)}<br><small>${line(m)}</small></button></li>`).join("") : "<li><small>No saved meals yet</small></li>";
   }
   $("savedBtn").onclick = () => {
     const open = $("savedForm").classList.toggle("hidden") === false;
-    if (open) { $("smName").value = ""; $("smRows").innerHTML = ""; $("smRows").append(smRow()); $("smMsg").textContent = ""; loadSaved(); $("savedForm").scrollIntoView({ behavior: "smooth", block: "start" }); }
+    if (open) { smReset(); $("smMsg").textContent = ""; loadSaved(); $("savedForm").scrollIntoView({ behavior: "smooth", block: "start" }); }
   };
   $("smAdd").onclick = () => $("smRows").append(smRow());
-  $("smCancel").onclick = () => $("savedForm").classList.add("hidden");
+  $("smCancel").onclick = () => { if (smEditId) { smReset(); $("smMsg").textContent = ""; } else $("savedForm").classList.add("hidden"); };
   $("smSave").onclick = async () => {
     const msg = t => { $("smMsg").classList.add("err"); $("smMsg").textContent = t; };
     const name = $("smName").value.trim(); if (!name) return msg("Enter a meal name.");
@@ -284,11 +288,17 @@ window.addEventListener("resize", fitList);
       if (!n && p == null && c == null && f == null && k == null) continue;
       if (!n) return msg("Every item needs a name.");
       if ([p, c, f, k].some(Number.isNaN)) return msg(`${n}: numbers must be 0 or more.`);
-      items.push({ name: n.slice(0, 200), protein: r1(p || 0), carbs: r1(c || 0), fat: r1(f || 0), calories: k != null ? r1(k) : r1(kcal(p || 0, c || 0, f || 0)), position: items.length });
+      items.push({ id: d.dataset.id ? Number(d.dataset.id) : undefined, name: n.slice(0, 200), protein: r1(p || 0), carbs: r1(c || 0), fat: r1(f || 0), calories: k != null ? r1(k) : r1(kcal(p || 0, c || 0, f || 0)), position: items.length });
     }
     if (!items.length) return msg("Add at least one item.");
     $("smSave").disabled = true;
     try {
+      if (smEditId) {
+        const { error } = await sb.rpc("update_saved_meal", { p_id: smEditId, p_name: name.slice(0, 100), p_items: items });
+        if (error) return msg("Save failed: " + error.message);
+        smReset(); $("smMsg").classList.remove("err"); $("smMsg").textContent = `Updated "${name}".`; return loadSaved();
+      }
+      items.forEach(i => delete i.id);
       const { data: m, error } = await sb.from("saved_meals").insert({ name: name.slice(0, 100) }).select("id").single();
       if (error) return msg("Save failed: " + error.message);
       const { error: e2 } = await sb.from("saved_meal_items").insert(items.map(i => ({ ...i, saved_meal_id: m.id })));
@@ -298,10 +308,18 @@ window.addEventListener("resize", fitList);
     } finally { $("smSave").disabled = false; }
   };
   $("smList").onclick = async e => {
+    const ed = e.target.closest("[data-smedit]");
+    if (ed) {
+      const m = savedMeals.find(x => String(x.id) === ed.dataset.smedit); if (!m) return;
+      smMode(m.id); $("smName").value = m.name; $("smRows").innerHTML = ""; m.items.forEach(i => $("smRows").append(smRow(i)));
+      if (!m.items.length) $("smRows").append(smRow());
+      $("smMsg").textContent = ""; return $("savedForm").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     const b = e.target.closest("[data-smdel]"); if (!b) return;
     const m = savedMeals.find(x => String(x.id) === b.dataset.smdel); if (!m || !confirm(`Delete saved meal "${m.name}"?`)) return;
     const { error } = await sb.from("saved_meals").delete().eq("id", m.id);
     if (error) { $("smMsg").classList.add("err"); $("smMsg").textContent = "Delete failed: " + error.message; }
+    else if (smEditId === m.id) smReset();
     loadSaved();
   };
   $("pick").onclick = async () => {
