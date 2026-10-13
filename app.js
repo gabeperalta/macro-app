@@ -264,6 +264,7 @@ window.addEventListener("resize", fitList);
         calories: it.calories != null ? r1(it.calories) : r1(kcal(it.protein, it.carbs, it.fat)),
         calories_source: it.calories != null ? (it.calories_source || it.source || "ai") : "estimate",
         sodium_mg: it.sodium_mg ?? null, sugar_g: it.sugar_g ?? null, sat_fat_g: it.sat_fat_g ?? null }));
+      rows.forEach(r => Object.assign(r, { est_protein: r.protein, est_carbs: r.carbs, est_fat: r.fat, est_calories: r.calories }));
       const { error: saveErr } = await sb.from("meal_items").insert(rows);
       if (saveErr) return status("Save failed: " + saveErr.message, true);
       $("chatInput").value = ""; grow(); // clear only on success so a failed message can be resent

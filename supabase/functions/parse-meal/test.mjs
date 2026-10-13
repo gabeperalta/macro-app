@@ -24,3 +24,14 @@ assert.equal(Math.round(kj.calories), 333);
 const u = L.usdaPer100({ foodNutrients: [{ nutrientId: 1003, value: 12.6 }, { nutrientId: 1005, value: 0.7 }, { nutrientId: 1004, value: 9.5 }, { nutrientId: 1008, value: 143, unitName: "KCAL" }, { nutrientId: 1093, value: 142 }, { nutrientId: 1258, value: 3.1 }] });
 assert.equal(u.calories, 143); assert.equal(u.sodium_mg, 142); assert.equal(u.sat_fat_g, 3.1); assert.equal(u.sugar_g, null);
 console.log("logic tests passed");
+// feedback helpers
+const m = (sim, score, extra = {}) => ({ username: "gabeperalta", food_name: "Salmon and grain bowl, 1 bowl", sim, score, age_days: 0,
+  orig_protein: 23.4, orig_carbs: 43.6, orig_fat: 14.7, orig_calories: 400, new_protein: 40, new_carbs: 43.6, new_fat: 14.7, new_calories: 466, ...extra });
+const sel = L.selectMatches([[m(0.84, 0.84), m(0.4, 0.4), m(0.6, 0.6), m(0.7, 0.7), m(0.9, 0.5)], []]);
+assert.equal(sel[0].length, 3); assert.equal(sel[0][0].score, 0.84); assert.equal(sel[1].length, 0);
+const fitems = [{ name: "Salmon and grains bowl", protein: 25, carbs: 45, fat: 15, calories: 420 }, { name: "apple", protein: 0, carbs: 25, fat: 0, calories: 95 }];
+const blk = L.correctionBlock(fitems, [[m(0.84, 0.84)], []]);
+assert.ok(blk.startsWith("USER CORRECTIONS (past edits by app users")); assert.ok(blk.includes("user gabeperalta corrected P23.4 to P40"));
+const adj = L.applyAdjust(fitems, [[m(0.84, 0.84)], []], { items: [{ i: 0, protein: 40, carbs: 45, fat: 15, calories: 480, feedback_applied: true }, { i: 1, protein: 9, carbs: 9, fat: 9, feedback_applied: true }] });
+assert.equal(adj[0].protein, 40); assert.equal(adj[0].feedback_applied, true); assert.equal(adj[1].protein, 0); assert.equal(adj[1].feedback_applied, false);
+console.log("feedback tests passed");
