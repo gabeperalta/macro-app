@@ -1,12 +1,25 @@
 # Saved meals — spec
 
-Status: implemented and published (v33). Tables created via `supabase/saved_meals.sql`; no saved meals or food entries were created for any user. Goals and existing meal_items rows are untouched.
+Status: implemented and published (v34; v33 shipped the first version). Tables created via `supabase/saved_meals.sql`; no saved meals or food entries were created for any user. Goals and existing meal_items rows are untouched.
 
 ## Current state (verified)
 - `meal_items`: id, user_id, eaten_at, description, name, protein, carbs, fat, calories, calories_source, sodium_mg, sugar_g, sat_fat_g, est_protein/est_carbs/est_fat/est_calories.
 - New rows come from the parse path in `chatForm.onsubmit` (app.js), which inserts one row per food with `est_*` = the saved values, then calls `refresh()`.
 - The estimation-feedback trigger fires only on UPDATE of values, so inserting a saved meal creates no feedback rows.
 - The Goals button sits in `.todayhead` (index.html:41) and opens `#goalsForm`, a `.card` panel.
+
+## ★ Saved meals are verified training data
+Logging a saved meal is a deliberate act: the user typed each item, its serving (e.g. "1 cup 2% milk") and its macros. That's stronger evidence than an AI guess or a one-off edit, so each logged saved-meal item becomes **high-confidence, shared** estimation feedback.
+
+- **Feedback is shared across all users**: a saved meal informs everyone's estimates for that food, labeled with whose it was.
+- **Path:** the app calls the RPC `log_saved_meal(p_saved_meal_id)` (security definer). In one transaction it checks the caller owns the meal and is approved, inserts the `meal_items` rows (`calories_source='saved_meal'`, `est_*` = values), and upserts one `estimation_feedback` row per saved item: `source='saved_meal'`, `confidence='high'`, `saved_meal_item_id`, `food_name` = full item name (serving kept), `food_key = norm_food(name)` (serving stripped, for matching), `new_*` = item macros, `orig_*` = null (no AI estimate).
+- **No spoofing:** `fb_write_own` now only lets clients insert `source<>'saved_meal'`, `confidence='normal'`, no `saved_meal_item_id`. Verified rows only come from the RPC.
+- **Dedupe:** unique partial index on `saved_meal_item_id where active`. Re-logging updates `created_at` (recency) and values instead of adding rows.
+- **Staleness:** a `before update or delete` trigger on `saved_meal_items` (`saved_item_retire_fb`) sets `active=false` when an item's name/macros change or it's deleted (deleting a meal cascades to its items).
+- **Matching:** `match_feedback` returns `source` and `confidence`; high confidence scores ×1.5. The 0.5 similarity threshold, 180-day window and 60-day decay are unchanged.
+- **Prompt:** parse-meal labels these `VERIFIED by user <username> via saved meal (exact serving: "...")` and tells the model to treat them as ground truth for the same food and serving and scale linearly for other stated amounts.
+- **Edits:** editing a logged saved-meal item in Today's items still writes a normal `manual_edit` correction through the existing trigger.
+- Migration: `supabase/saved_meals_feedback.sql`.
 
 ## 1. Migration (`supabase/saved_meals.sql`)
 ```sql
@@ -48,15 +61,14 @@ create policy "own saved meal items" on public.saved_meal_items for all to authe
 - `calories` is stored at save time (typed value, or 4P+4C+9F when left blank).
 
 ## 2. UI
-- **Saved meals button** (`#savedBtn`, `secondary small`, same as Goals) sits left of 🎯 Goals in the Today header. It opens `#savedForm`, a `.card` panel like the goals panel:
-  - Meal name, then rows of Item / P / C / F / kcal (kcal optional, placeholder "auto"), ✕ to remove a row, "+ Add item", Save meal / Cancel.
-  - Below: the user's saved meals with item count and totals, each with ✕ delete (confirm prompt).
-- **Choose saved meal** (`#pick`, bookmark icon, `aria-label="Choose saved meal"`, same `.mic` icon style) sits between the mic and Send. It toggles `#pickList` under the input; empty state "No saved meals yet".
+- **Header menu** (v34): a compact ☰ button (`#actBtn`, `aria-label="Menu"`) sits centered in the top header between "Macro Log" and the username. It opens a small dropdown (`#actMenu`) with **Goals** and **Saved meals**. Each opens its existing panel (same `#goalsBtn` / `#savedBtn` handlers) and scrolls it into view. The dropdown closes on a choice or an outside tap. The old Goals and Saved meals buttons in the Today heading were removed.
+- **Saved meals panel** (`#savedForm`, a `.card` like the goals panel): meal name, then rows of Item / P / C / F / kcal (kcal optional, placeholder "auto"), ✕ to remove a row, "+ Add item", Save meal / Cancel. Below that: the user's saved meals with item count and totals, each with ✕ delete (confirm prompt).
+- **Choose saved meal** (`#pick`, bookmark icon, `aria-label="Choose saved meal"`, same `.mic` icon style) sits between the mic and Send. It toggles `#pickList` under the input. Empty state: "No saved meals yet".
 
 ## 3. Logging behavior
-One tap on a meal in the picker inserts one `meal_items` row per saved item:
+One tap on a meal in the picker calls `log_saved_meal(id)`, which inserts one `meal_items` row per saved item (and the verified feedback above):
 `user_id`, `eaten_at` = now, `description` = saved meal name, `name`, `protein`, `carbs`, `fat`, `calories`, `calories_source = 'saved_meal'`, `est_*` = same values.
-Then `refresh()` runs, so totals, Goal Met!, Records, and charts update. Items can be edited/deleted in Today's items like any other entry (edits feed estimation_feedback as usual).
+Then `refresh()` runs, so totals, Goal Met!, Records, and charts update. Items can be edited/deleted in Today's items like any other entry (edits write a `manual_edit` correction as usual).
 
 ## 4. Retention
 Saved meals are templates, so the 12-month cleanup does not touch them. Logged items follow the normal meal_items retention.
@@ -64,10 +76,11 @@ Saved meals are templates, so the 12-month cleanup does not touch them. Logged i
 ## 5. Migration steps
 1. Run `supabase/saved_meals.sql` (done; re-runnable).
 2. Verify RLS: owner insert/select works for an approved user; other users and anon are denied (done, inside rolled-back transactions).
-3. Ship index.html / app.js / styles.css; bump `sw.js` cache and `?v=` to 33.
+3. Ship index.html / app.js / styles.css; bump `sw.js` cache and `?v=` (33, then 34).
+3b. Run `supabase/saved_meals_feedback.sql` and redeploy `parse-meal` (done).
 4. Close and reopen the PWA to pick up the update.
 
 ## Code locations
-- app.js: saved meals block starting at line 251.
-- index.html: `#savedBtn`/`#savedForm` (lines 41–52), `#pick` and `#pickList` in the Log food card.
+- app.js: saved meals block starting at line 254.
+- index.html: header menu `#actBtn`/`#actMenu` (lines 19–21), `#savedForm` after `#goalsForm`, `#pick` and `#pickList` in the Log food card.
 - styles.css: `.headbtns`, `.smhead`, `.smrow`, `#pickList` at the end.

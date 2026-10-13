@@ -122,3 +122,7 @@ and say so in "note". Never copy a correction for an unrelated food.
 4. Update the retention cron to delete feedback older than 12 months.
 5. Test: edit a salmon entry from 20g to 40g protein and confirm a feedback row appears. Log "salmon" again and confirm the estimate is about 40g with `feedback_applied`.
 6. Bump the sw cache and `?v`, then publish.
+
+
+## Sources and confidence (added with saved meals)
+`source` now allows `'saved_meal'` in addition to `'manual_edit'` and `'correction_pass'`. A new `confidence` column (`'normal'` | `'high'`) and `saved_meal_item_id` link verified rows to their saved meal item. Saved-meal rows are high confidence, score ×1.5 in `match_feedback`, and are labeled VERIFIED in the prompt. Like all feedback they're shared across users. See **docs/saved-meals-spec.md → "Saved meals are verified training data"** and `supabase/saved_meals_feedback.sql`.

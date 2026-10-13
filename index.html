@@ -13,10 +13,12 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css?v=33">
+<link rel="stylesheet" href="styles.css?v=34">
 </head>
 <body>
 <header><h1>Macro Log</h1>
+  <div class="actmenu"><button id="actBtn" class="userbtn hidden" aria-label="Menu" aria-haspopup="true">☰</button>
+    <div id="actMenu" class="menu hidden"><button id="goalsBtn" class="secondary">Goals</button><button id="savedBtn" class="secondary">Saved meals</button></div></div>
   <div class="usermenu"><button id="userBtn" class="userbtn hidden" aria-haspopup="true"></button>
     <div id="userMenu" class="menu hidden"><button id="logout" class="secondary">Log out</button></div></div>
 </header>
@@ -38,7 +40,7 @@
 
 <main id="app" class="hidden">
   <section>
-    <div class="todayhead"><h2>Today</h2><div class="headbtns"><button id="savedBtn" class="secondary small">🍽️ Saved meals</button><button id="goalsBtn" class="secondary small">🎯 Goals</button></div></div>
+    <div class="todayhead"><h2>Today</h2></div>
     <div id="savedForm" class="card hidden">
       <h2>Saved meals</h2>
       <input id="smName" type="text" maxlength="100" placeholder="Meal name (e.g. Protein shake)" autocomplete="off">
@@ -119,6 +121,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=33"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>

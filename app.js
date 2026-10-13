@@ -29,6 +29,8 @@
   $("signup").onclick = () => auth("signup");
   $("userBtn").onclick = e => { e.stopPropagation(); $("userMenu").classList.toggle("hidden"); };
   document.addEventListener("click", e => { if (!e.target.closest(".usermenu")) $("userMenu").classList.add("hidden"); });
+  $("actBtn").onclick = e => { e.stopPropagation(); $("actMenu").classList.toggle("hidden"); };
+  document.addEventListener("click", e => { if (!e.target.closest(".actmenu") || e.target.closest("#actMenu button")) $("actMenu").classList.add("hidden"); });
   $("logout").onclick = () => { $("userMenu").classList.add("hidden"); sb.auth.signOut(); };
   // iOS freezes home-screen apps; refresh the token when we come back.
   document.addEventListener("visibilitychange", () => { if (!document.hidden) sb.auth.getSession(); });
@@ -43,7 +45,7 @@
   async function show(session) {
     const seq = ++showSeq;
     $("auth").classList.toggle("hidden", !!session);
-    $("userBtn").classList.toggle("hidden", !session);
+    $("userBtn").classList.toggle("hidden", !session); $("actBtn").classList.toggle("hidden", !session);
     if (session) $("userBtn").textContent = session.user.user_metadata?.username || session.user.email.split("@")[0];
     if (!session) { $("app").classList.add("hidden"); $("pending").classList.add("hidden"); return; }
     $("pendingMsg").textContent = "";
@@ -160,6 +162,7 @@ window.addEventListener("resize", fitList);
     const f = $("goalsForm"); const open = f.classList.toggle("hidden") === false;
     if (open) GK.forEach(([K, name]) => { $("d" + K).value = goals?.[name + "_dir"] || ""; $("v" + K).value = goals?.[name + "_g"] ?? ""; $("x" + K).value = goals?.[name + "_max"] ?? ""; rangeUI(K); });
     $("goalsMsg").textContent = "";
+    if (open) f.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   // Range shows Min + Max inputs instead of the single value.
   function rangeUI(K) { const r = $("d" + K).value === "range"; $("x" + K).classList.toggle("hidden", !r); $("v" + K).placeholder = r ? "Min" : K === "K" ? "kcal" : "g"; }
@@ -268,7 +271,7 @@ window.addEventListener("resize", fitList);
   }
   $("savedBtn").onclick = () => {
     const open = $("savedForm").classList.toggle("hidden") === false;
-    if (open) { $("smName").value = ""; $("smRows").innerHTML = ""; $("smRows").append(smRow()); $("smMsg").textContent = ""; loadSaved(); }
+    if (open) { $("smName").value = ""; $("smRows").innerHTML = ""; $("smRows").append(smRow()); $("smMsg").textContent = ""; loadSaved(); $("savedForm").scrollIntoView({ behavior: "smooth", block: "start" }); }
   };
   $("smAdd").onclick = () => $("smRows").append(smRow());
   $("smCancel").onclick = () => $("savedForm").classList.add("hidden");
@@ -310,14 +313,8 @@ window.addEventListener("resize", fitList);
     const m = savedMeals.find(x => String(x.id) === b.dataset.pick); if (!m || !m.items.length) return;
     b.disabled = true;
     try {
-      const { data: { user } } = await sb.auth.getUser();
-      const now = new Date().toISOString();
-      const rows = m.items.map(i => {
-        const p = r1(i.protein), c = r1(i.carbs), f = r1(i.fat), k = i.calories != null ? r1(i.calories) : r1(kcal(p, c, f));
-        return { user_id: user.id, eaten_at: now, description: m.name, name: i.name, protein: p, carbs: c, fat: f, calories: k, calories_source: "saved_meal",
-          est_protein: p, est_carbs: c, est_fat: f, est_calories: k };
-      });
-      const { error } = await sb.from("meal_items").insert(rows);
+      // Server inserts the items and records them as verified feedback in one transaction.
+      const { error } = await sb.rpc("log_saved_meal", { p_saved_meal_id: m.id });
       if (error) return status("Save failed: " + error.message, true);
       $("pickList").classList.add("hidden"); status(`Logged ${m.name}.`); refresh();
     } finally { b.disabled = false; }
