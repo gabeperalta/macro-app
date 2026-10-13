@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
 <header><h1>Macro Log</h1>
@@ -38,7 +38,17 @@
 
 <main id="app" class="hidden">
   <section>
-    <div class="todayhead"><h2>Today</h2><button id="goalsBtn" class="secondary small">🎯 Goals</button></div>
+    <div class="todayhead"><h2>Today</h2><div class="headbtns"><button id="savedBtn" class="secondary small">🍽️ Saved meals</button><button id="goalsBtn" class="secondary small">🎯 Goals</button></div></div>
+    <div id="savedForm" class="card hidden">
+      <h2>Saved meals</h2>
+      <input id="smName" type="text" maxlength="100" placeholder="Meal name (e.g. Protein shake)" autocomplete="off">
+      <div class="smhead"><span>Item</span><span>P</span><span>C</span><span>F</span><span>kcal</span><span></span></div>
+      <div id="smRows"></div>
+      <button type="button" id="smAdd" class="secondary small">+ Add item</button>
+      <div class="row"><button id="smSave">Save meal</button><button id="smCancel" class="secondary">Cancel</button></div>
+      <p id="smMsg" class="status"></p>
+      <ul id="smList" class="list"></ul>
+    </div>
     <div id="goalsForm" class="card hidden">
       <h2>Daily goals</h2>
       <div class="grow"><label>Protein</label><select id="dP"><option value="">No goal</option><option value="over">Over</option><option value="under">Under</option><option value="range">Range</option></select><div class="gvals"><input id="vP" type="number" inputmode="decimal" min="0" step="any" placeholder="g"><input id="xP" class="hidden" type="number" inputmode="decimal" min="0" step="any" placeholder="Max"></div></div>
@@ -68,9 +78,11 @@
       </div>
       <div class="btnrow">
       <button type="button" id="mic" class="mic hidden" aria-label="Speak your meal" title="Speak your meal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8.5 21h7"/></svg></button>
+      <button type="button" id="pick" class="mic" aria-label="Choose saved meal" title="Choose saved meal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
       <button id="send">Send</button>
       </div>
     </form>
+    <ul id="pickList" class="list hidden"></ul>
     <p id="status" class="status"></p>
   </section>
   <section class="card">
@@ -107,6 +119,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=32"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>

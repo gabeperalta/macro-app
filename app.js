@@ -248,6 +248,81 @@ window.addEventListener("resize", fitList);
         scales: { x: { ticks: { color: "#9aa3b2" }, grid: { color: "#2c313c" } }, y: { beginAtZero: true, ticks: { color: "#9aa3b2" }, grid: { color: "#2c313c" } } } } });
   }
 
+  // Saved meals: build in the panel by the Goals button; log in one tap from the bookmark button.
+  let savedMeals = [];
+  const smNum = v => { const n = Number(String(v).trim().replace(",", ".")); return String(v).trim() === "" ? null : Number.isFinite(n) && n >= 0 ? n : NaN; };
+  function smRow() {
+    const d = document.createElement("div"); d.className = "smrow";
+    d.innerHTML = `<input class="smn" type="text" maxlength="200" placeholder="Item"><input class="smp" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><input class="smc" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><input class="smf" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><input class="smk" type="number" inputmode="decimal" min="0" step="any" placeholder="auto"><button type="button" class="link" aria-label="Remove item">✕</button>`;
+    d.querySelector("button").onclick = () => { d.remove(); if (!$("smRows").children.length) $("smRows").append(smRow()); };
+    return d;
+  }
+  async function loadSaved() {
+    const { data, error } = await sb.from("saved_meals").select("id,name,created_at,saved_meal_items(name,protein,carbs,fat,calories,position)").order("name");
+    if (error) return (savedMeals = []);
+    savedMeals = data.map(m => ({ ...m, items: (m.saved_meal_items || []).sort((a, b) => a.position - b.position) }));
+    const sum = m => m.items.reduce((t, i) => ({ k: t.k + (+i.calories || 0), p: t.p + +i.protein, c: t.c + +i.carbs, f: t.f + +i.fat }), { k: 0, p: 0, c: 0, f: 0 });
+    const line = m => { const t = sum(m); return `${fmtK(t.k)} · P ${r1(t.p)} · C ${r1(t.c)} · F ${r1(t.f)}`; };
+    $("smList").innerHTML = savedMeals.map(m => `<li><span>${esc(m.name)}<br><small>${m.items.length} item${m.items.length === 1 ? "" : "s"} · ${line(m)}</small></span><span class="acts"><button class="link icon" data-smdel="${m.id}" aria-label="Delete saved meal">✕</button></span></li>`).join("");
+    $("pickList").innerHTML = savedMeals.length ? savedMeals.map(m => `<li><button type="button" class="pk" data-pick="${m.id}">${esc(m.name)}<br><small>${line(m)}</small></button></li>`).join("") : "<li><small>No saved meals yet</small></li>";
+  }
+  $("savedBtn").onclick = () => {
+    const open = $("savedForm").classList.toggle("hidden") === false;
+    if (open) { $("smName").value = ""; $("smRows").innerHTML = ""; $("smRows").append(smRow()); $("smMsg").textContent = ""; loadSaved(); }
+  };
+  $("smAdd").onclick = () => $("smRows").append(smRow());
+  $("smCancel").onclick = () => $("savedForm").classList.add("hidden");
+  $("smSave").onclick = async () => {
+    const msg = t => { $("smMsg").classList.add("err"); $("smMsg").textContent = t; };
+    const name = $("smName").value.trim(); if (!name) return msg("Enter a meal name.");
+    const items = [];
+    for (const d of $("smRows").children) {
+      const n = d.querySelector(".smn").value.trim(), p = smNum(d.querySelector(".smp").value), c = smNum(d.querySelector(".smc").value), f = smNum(d.querySelector(".smf").value), k = smNum(d.querySelector(".smk").value);
+      if (!n && p == null && c == null && f == null && k == null) continue;
+      if (!n) return msg("Every item needs a name.");
+      if ([p, c, f, k].some(Number.isNaN)) return msg(`${n}: numbers must be 0 or more.`);
+      items.push({ name: n.slice(0, 200), protein: r1(p || 0), carbs: r1(c || 0), fat: r1(f || 0), calories: k != null ? r1(k) : r1(kcal(p || 0, c || 0, f || 0)), position: items.length });
+    }
+    if (!items.length) return msg("Add at least one item.");
+    $("smSave").disabled = true;
+    try {
+      const { data: m, error } = await sb.from("saved_meals").insert({ name: name.slice(0, 100) }).select("id").single();
+      if (error) return msg("Save failed: " + error.message);
+      const { error: e2 } = await sb.from("saved_meal_items").insert(items.map(i => ({ ...i, saved_meal_id: m.id })));
+      if (e2) { await sb.from("saved_meals").delete().eq("id", m.id); return msg("Save failed: " + e2.message); }
+      $("smName").value = ""; $("smRows").innerHTML = ""; $("smRows").append(smRow());
+      $("smMsg").classList.remove("err"); $("smMsg").textContent = `Saved "${name}".`; loadSaved();
+    } finally { $("smSave").disabled = false; }
+  };
+  $("smList").onclick = async e => {
+    const b = e.target.closest("[data-smdel]"); if (!b) return;
+    const m = savedMeals.find(x => String(x.id) === b.dataset.smdel); if (!m || !confirm(`Delete saved meal "${m.name}"?`)) return;
+    const { error } = await sb.from("saved_meals").delete().eq("id", m.id);
+    if (error) { $("smMsg").classList.add("err"); $("smMsg").textContent = "Delete failed: " + error.message; }
+    loadSaved();
+  };
+  $("pick").onclick = async () => {
+    const l = $("pickList"); if (l.classList.toggle("hidden")) return;
+    l.innerHTML = "<li><small>Loading…</small></li>"; await loadSaved();
+  };
+  $("pickList").onclick = async e => {
+    const b = e.target.closest("[data-pick]"); if (!b || b.disabled) return;
+    const m = savedMeals.find(x => String(x.id) === b.dataset.pick); if (!m || !m.items.length) return;
+    b.disabled = true;
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      const now = new Date().toISOString();
+      const rows = m.items.map(i => {
+        const p = r1(i.protein), c = r1(i.carbs), f = r1(i.fat), k = i.calories != null ? r1(i.calories) : r1(kcal(p, c, f));
+        return { user_id: user.id, eaten_at: now, description: m.name, name: i.name, protein: p, carbs: c, fat: f, calories: k, calories_source: "saved_meal",
+          est_protein: p, est_carbs: c, est_fat: f, est_calories: k };
+      });
+      const { error } = await sb.from("meal_items").insert(rows);
+      if (error) return status("Save failed: " + error.message, true);
+      $("pickList").classList.add("hidden"); status(`Logged ${m.name}.`); refresh();
+    } finally { b.disabled = false; }
+  };
+
   $("chatForm").onsubmit = async e => {
     e.preventDefault();
     const text = $("chatInput").value.trim(); if (!text) return;
