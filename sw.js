@@ -1,4 +1,4 @@
-const CACHE = "macro-log-v36";
+const CACHE = "macro-log-v37";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./config.js", "./manifest.json", "./icons/icon-192.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", e => {

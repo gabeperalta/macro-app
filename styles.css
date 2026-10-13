@@ -69,5 +69,7 @@ button.small{padding:6px 12px;font-size:14px}
 .actmenu{position:relative}#actBtn{font-size:18px;padding:4px 14px;line-height:1.2}
 #actMenu{left:50%;right:auto;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px}
 
-#actBtn{font-size:24px;padding:8px 20px;min-width:64px;min-height:44px;background:var(--accent,#3b82f6);color:#fff;font-weight:700;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
+#actBtn{font-size:18px;padding:6px 12px;min-width:44px;min-height:36px;background:transparent;color:var(--mut);font-weight:400}
 #actMenu{min-width:180px}#actMenu button{font-size:17px;padding:14px 20px;min-height:48px;width:100%;text-align:left}
+
+header{min-height:48px}#userMenu{left:0;right:auto}#actMenu{left:auto;right:0;transform:none}
