@@ -378,7 +378,7 @@ window.addEventListener("resize", fitList);
   }
 
   // Auto-growing textarea: Enter sends, Shift+Enter = newline.
-  function grow() { if ($("hint")) $("hint").classList.toggle("hidden", !!$("chatInput").value); const t = $("chatInput"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 170) + "px"; t.scrollTop = t.scrollHeight; }
+  function grow() { if ($("hint")) $("hint").classList.toggle("hidden", !!$("chatInput").value); const t = $("chatInput"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 240) + "px"; t.scrollTop = t.scrollHeight; }
   $("chatInput").addEventListener("input", grow);
   $("chatInput").addEventListener("keydown", e => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("chatForm").requestSubmit ? $("chatForm").requestSubmit() : $("send").click(); }
