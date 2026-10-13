@@ -77,3 +77,5 @@ header{min-height:48px}#userMenu{left:0;right:auto}#actMenu{left:auto;right:0;tr
 #pickList li{padding:0}#pickList li button.pk{display:block;width:100%;padding:10px 4px;min-height:44px}
 
 textarea#chatInput{box-sizing:border-box;min-height:104px;max-height:240px;overflow-wrap:anywhere;white-space:pre-wrap}
+
+.smrow{display:block;border:1px solid #2c313c;border-radius:12px;padding:8px 10px;margin:8px 0}.smrowhead{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font-size:13px}.smf-l{display:block;color:var(--mut);font-size:13px;margin-top:6px}.smf-l input,.smrow input{display:block;width:100%;margin:4px 0 0;padding:10px;font-size:16px}#smAdd{margin:6px 0 18px}
